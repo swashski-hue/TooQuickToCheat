@@ -215,7 +215,7 @@ export default function PlayerGame() {
           : reveal.type === "number"
             ? String(reveal.correctNumber)
             : reveal.type === "sequence"
-              ? reveal.correctOrder.map((i) => board.items.find((it) => it.originalIndex === i)?.text).join(" → ")
+              ? reveal.correctOrder.join(" → ")
               : ""
       : null;
 
@@ -370,11 +370,10 @@ export default function PlayerGame() {
                 <div className="sequence-wrap">
                   <p className="subtitle">Correct order:</p>
                   <div className="sequence-chosen">
-                    {reveal.correctOrder.map((originalIndex, i) => (
-                      <div className="sequence-chip-row" key={originalIndex}>
+                    {reveal.correctOrder.map((text, i) => (
+                      <div className="sequence-chip-row" key={i}>
                         <span className="sequence-chip correct">
-                          <span className="sequence-chip-num">{i + 1}</span>{" "}
-                          {board.items.find((it) => it.originalIndex === originalIndex)?.text}
+                          <span className="sequence-chip-num">{i + 1}</span> {text}
                         </span>
                       </div>
                     ))}
