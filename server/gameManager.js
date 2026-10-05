@@ -87,13 +87,14 @@ export function queueList(room) {
   return room.queue;
 }
 
-export function addToQueue(room, roundSummary, roundType) {
+export function addToQueue(room, roundSummary, roundType, fastTrack) {
   room.queueSeq += 1;
   const entry = {
     id: `q${room.queueSeq}`,
     roundId: roundSummary.id,
     roundName: roundSummary.name,
     roundType: ROUND_TYPES[roundType] ? roundType : "standard",
+    fastTrack: !!fastTrack,
     questionCount: roundSummary.questionCount,
     visibility: roundSummary.visibility,
   };
@@ -137,17 +138,19 @@ export function removeRoom(code) {
 }
 
 /** Loads a round from the bank into the room and resets per-round progress. Keeps players' scores. */
-export function selectRound(room, roundData, roundType) {
+export function selectRound(room, roundData, roundType, fastTrack) {
   if (room.timer) clearTimeout(room.timer);
   room.round = {
     id: roundData.id,
     name: roundData.name,
     questions: roundData.questions,
     roundType: ROUND_TYPES[roundType] ? roundType : "standard",
+    fastTrack: !!fastTrack,
   };
   room.questionIndex = -1;
   room.questionStartedAt = null;
   room.correctAnswerCount = 0;
+  room.fastTrackTopIds = null;
   room.state = "lobby";
   for (const p of room.players.values()) p.lastAnswer = null;
 }
@@ -208,6 +211,13 @@ export function leaderboard(room) {
   return playerList(room).sort((a, b) => b.score - a.score);
 }
 
+/** The top `n` players' ids by current score — used to snapshot standings before a Fast Track question. */
+function topPlayerIds(room, n) {
+  return leaderboard(room)
+    .slice(0, n)
+    .map((p) => p.id);
+}
+
 export function currentQuestion(room) {
   return room.round?.questions[room.questionIndex];
 }
@@ -252,6 +262,9 @@ export function revealBoard(room, onTimeout) {
 
   room.state = "question";
   room.questionStartedAt = Date.now();
+  // Snapshot of who's in the top 3 BEFORE this question's answers come in —
+  // Fast Track checks this, not the post-question standings.
+  room.fastTrackTopIds = room.round.fastTrack ? topPlayerIds(room, 3) : null;
 
   if (room.timer) clearTimeout(room.timer);
   room.timer = setTimeout(() => {
@@ -267,6 +280,7 @@ export function revealBoard(room, onTimeout) {
     pictureUrl: q.pictureUrl,
     timeLimitSeconds: q.timeLimitSeconds,
     roundType: room.round.roundType,
+    fastTrack: room.round.fastTrack,
     index: room.questionIndex,
     total: room.round.questions.length,
   };
@@ -352,14 +366,48 @@ export function allPlayersAnswered(room) {
   return Array.from(room.players.values()).every((p) => p.lastAnswer !== null);
 }
 
+/**
+ * Fast Track: if everyone who was in the top 3 BEFORE this question got it
+ * wrong (or didn't answer), whoever answered correctly the fastest — by
+ * definition, someone outside the top 3 — jumps to equal the leader's score.
+ * Mutates the fast-tracked player's score; call before reading final scores.
+ */
+function computeFastTrack(room) {
+  const topIds = room.fastTrackTopIds;
+  if (!topIds || topIds.length === 0) return null;
+
+  for (const id of topIds) {
+    const p = room.players.get(id);
+    if (p?.lastAnswer?.isCorrect) return null; // a top-3 player got it right — no fast track
+  }
+
+  let fastest = null;
+  for (const p of room.players.values()) {
+    if (!p.lastAnswer?.isCorrect) continue;
+    if (!fastest || p.lastAnswer.elapsedMs < fastest.lastAnswer.elapsedMs) fastest = p;
+  }
+  if (!fastest) return null; // nobody got it right
+
+  const leaderScore = Math.max(...Array.from(room.players.values()).map((p) => p.score));
+  if (fastest.score >= leaderScore) return null; // already tied or ahead
+
+  fastest.score = leaderScore;
+  return { playerId: fastest.id, playerName: fastest.name, newScore: leaderScore };
+}
+
 export function revealAnswer(room) {
   if (room.timer) clearTimeout(room.timer);
   room.state = "reveal";
   const q = currentQuestion(room);
 
+  // Must run before building `results` below so the fast-tracked player's
+  // boosted score is what gets sent out, not their pre-boost score.
+  const fastTrackEvent = room.round.fastTrack ? computeFastTrack(room) : null;
+
   const base = {
     type: q.type,
     roundType: room.round.roundType,
+    fastTrackEvent,
     results: Array.from(room.players.values()).map((p) => ({
       id: p.id,
       name: p.name,

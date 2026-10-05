@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { socket } from "../lib/socket.js";
 import { SERVER_URL } from "../lib/api.js";
-import { ROUND_TYPE_LABELS } from "../lib/roundTypes.js";
+import { ROUND_TYPE_LABELS, FAST_TRACK_LABEL } from "../lib/roundTypes.js";
 
 export default function PresentationScreen() {
   const { code } = useParams();
@@ -158,6 +158,7 @@ export default function PresentationScreen() {
           {board.roundType !== "standard" && (
             <p className="present-label">{ROUND_TYPE_LABELS[board.roundType]} Round</p>
           )}
+          {board.fastTrack && <p className="present-label fast-track-label">{FAST_TRACK_LABEL} active</p>}
           {pictureUrl && (
             <div className="picture-display present-picture">
               <img src={`${SERVER_URL}${pictureUrl}`} alt="" />
@@ -194,6 +195,13 @@ export default function PresentationScreen() {
 
       {phase === "reveal" && reveal && board && (
         <div className="present-center">
+          {reveal.fastTrackEvent && (
+            <div className="present-fast-track-banner">
+              ⚡ FAST TRACKED! ⚡
+              <br />
+              {reveal.fastTrackEvent.playerName} jumps to {reveal.fastTrackEvent.newScore} points!
+            </div>
+          )}
           <h1 className="present-question">{board.text}</h1>
 
           {reveal.type === "multiple_choice" && (

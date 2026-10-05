@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { socket } from "../lib/socket.js";
 import { SERVER_URL } from "../lib/api.js";
-import { ROUND_TYPE_LABELS, ROUND_TYPE_HINTS } from "../lib/roundTypes.js";
+import { ROUND_TYPE_LABELS, ROUND_TYPE_HINTS, FAST_TRACK_LABEL } from "../lib/roundTypes.js";
 import AddRoundModal from "../components/AddRoundModal.jsx";
 import RunningOrderPanel from "../components/RunningOrderPanel.jsx";
 
@@ -297,6 +297,11 @@ export default function HostRoom() {
                   <div className="option-display correct">{reveal.correctOrder.join(" → ")}</div>
                 </div>
               )}
+              {reveal.fastTrackEvent && (
+                <div className="fast-track-banner">
+                  ⚡ FAST TRACKED! {reveal.fastTrackEvent.playerName} jumps to {reveal.fastTrackEvent.newScore} points!
+                </div>
+              )}
               <p className="subtitle">Calculating leaderboard...</p>
             </>
           )}
@@ -365,6 +370,7 @@ export default function HostRoom() {
               <span className="host-sidebar-label">Now playing</span>
               <span className="host-sidebar-value">{currentRound.name}</span>
               <span className="round-type-pill">{ROUND_TYPE_LABELS[currentRound.roundType]}</span>
+              {currentRound.fastTrack && <span className="round-type-pill fast-track-pill">{FAST_TRACK_LABEL}</span>}
             </div>
           )}
 

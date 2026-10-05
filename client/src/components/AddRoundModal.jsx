@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { listRounds, getRound, getRoundTypes } from "../lib/api.js";
 import { formatDate } from "../lib/formatDate.js";
 import { QUESTION_TYPE_LABELS } from "../lib/questionTypes.js";
+import { FAST_TRACK_LABEL, FAST_TRACK_HINT } from "../lib/roundTypes.js";
 import { socket } from "../lib/socket.js";
 
 export default function AddRoundModal({ code, onClose }) {
@@ -11,6 +12,7 @@ export default function AddRoundModal({ code, onClose }) {
   const [roundId, setRoundId] = useState("");
   const [roundDetail, setRoundDetail] = useState(null); // full round, fetched on selection
   const [roundType, setRoundType] = useState("standard");
+  const [fastTrack, setFastTrack] = useState(false);
   const [creatorFilter, setCreatorFilter] = useState(""); // "" = everyone
   const [sortDir, setSortDir] = useState("desc"); // by createdAt; desc = newest first
   const [error, setError] = useState("");
@@ -51,7 +53,7 @@ export default function AddRoundModal({ code, onClose }) {
     if (!roundId) return setError("Pick a round from the bank first.");
     setError("");
     setLoading(true);
-    socket.emit("host:queueAdd", { code, roundId, roundType }, (res) => {
+    socket.emit("host:queueAdd", { code, roundId, roundType, fastTrack }, (res) => {
       setLoading(false);
       if (res.ok) onClose();
       else setError(res.error);
@@ -154,6 +156,14 @@ export default function AddRoundModal({ code, onClose }) {
                 </button>
               ))}
             </div>
+
+            <label className={`fast-track-toggle ${fastTrack ? "active" : ""}`}>
+              <input type="checkbox" checked={fastTrack} onChange={(e) => setFastTrack(e.target.checked)} />
+              <span className="fast-track-toggle-text">
+                <strong>{FAST_TRACK_LABEL}</strong>
+                <span>{FAST_TRACK_HINT}</span>
+              </span>
+            </label>
 
             <button className="btn btn-primary btn-large" onClick={confirm} disabled={loading}>
               {loading ? "Adding..." : "+ Add to Running Order"}

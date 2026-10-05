@@ -1,4 +1,4 @@
-import { ROUND_TYPE_LABELS } from "../lib/roundTypes.js";
+import { ROUND_TYPE_LABELS, FAST_TRACK_LABEL } from "../lib/roundTypes.js";
 import { socket } from "../lib/socket.js";
 
 export default function RunningOrderPanel({ code, queue, onAddRound }) {
@@ -23,6 +23,7 @@ export default function RunningOrderPanel({ code, queue, onAddRound }) {
                 {entry.roundName}
               </strong>
               <span className="round-type-pill small">{ROUND_TYPE_LABELS[entry.roundType]}</span>
+              {entry.fastTrack && <span className="round-type-pill small fast-track-pill">{FAST_TRACK_LABEL}</span>}
               <span className="subtitle">{entry.questionCount} questions</span>
             </div>
             <div className="running-order-item-controls">

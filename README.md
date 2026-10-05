@@ -63,6 +63,12 @@ A correct answer is worth **10 points**. Standard, Evil, and Go Wide rounds all 
 | **Evil** 😈 | 10 points for correct (plus the speed bonus), but a *wrong* (submitted) answer costs you 10 points. Skipping a question is always safe — only guessing wrong is punished. |
 | **Go Wide** 🎯 | Players pick **2** answers instead of 1 (multiple choice or Normal/letters questions). If either pick is right, they score half of whatever they would've scored — including any speed bonus — rounded to the nearest point. |
 
+### Fast Track
+
+An optional toggle (alongside the round type, in the same "add round" picker) that works on top of any round type. On every question in that round: if everyone who was in the **top 3** *before* the question all get it wrong (or don't answer), whoever answers correctly the fastest — by definition, someone outside the top 3 — is **Fast Tracked**: their score jumps up to equal the current leader's. It's a catch-up mechanic for when the leaders all whiff a question and an underdog nails it. Announced with a banner on both the Quiz Master screen and the Presentation screen the moment it happens.
+
+If nobody answers correctly, or any of the top 3 gets it right, nothing happens — Fast Track only fires on a clean "leaders all missed it, someone else got it" moment.
+
 ## Editing a round
 
 From **Manage Quiz Bank**, use **+ New round** or **Edit** on an existing one. The round is automatically attributed to whoever's signed in — "Created by" isn't editable, so attribution can't be faked. For each question you can:

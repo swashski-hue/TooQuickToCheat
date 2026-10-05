@@ -11,3 +11,7 @@ export const ROUND_TYPE_HINTS = {
   go_wide: "Players pick 2 answers for half the points (including any speed bonus).",
   speed: "10 points for any correct answer — the single fastest correct answer gets a bonus 10 on top.",
 };
+
+export const FAST_TRACK_LABEL = "⚡ Fast Track";
+export const FAST_TRACK_HINT =
+  "On any question where the top 3 all get it wrong, whoever answers correctly the fastest jumps to equal the leader's score.";

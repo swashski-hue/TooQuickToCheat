@@ -280,7 +280,12 @@ io.on("connection", (socket) => {
       ok: true,
       code: room.code,
       round: room.round
-        ? { name: room.round.name, roundType: room.round.roundType, questionCount: room.round.questions.length }
+        ? {
+            name: room.round.name,
+            roundType: room.round.roundType,
+            fastTrack: room.round.fastTrack,
+            questionCount: room.round.questions.length,
+          }
         : null,
       queue: game.queueList(room),
     });
@@ -290,7 +295,7 @@ io.on("connection", (socket) => {
   // The running order can be built up and edited any time — while players are
   // still joining, or mid-game between rounds — right up until a round is
   // actually popped off the front and started.
-  socket.on("host:queueAdd", ({ code, roundId, roundType }, ack) => {
+  socket.on("host:queueAdd", ({ code, roundId, roundType, fastTrack }, ack) => {
     const room = game.getRoom(code);
     if (!room || room.hostSocketId !== socket.id) return ack?.({ ok: false, error: "Not authorized" });
     if (!socket.data.user) return ack?.({ ok: false, error: "Sign in to host a quiz" });
@@ -310,7 +315,8 @@ io.on("connection", (socket) => {
         questionCount: roundData.questions.length,
         visibility: roundData.visibility,
       },
-      roundType
+      roundType,
+      fastTrack
     );
     emitQueue(room);
     ack?.({ ok: true });
@@ -346,11 +352,12 @@ io.on("connection", (socket) => {
         return ack?.({ ok: false, error: "That round is no longer available in the bank" });
       }
 
-      game.selectRound(room, roundData, nextEntry.roundType);
+      game.selectRound(room, roundData, nextEntry.roundType, nextEntry.fastTrack);
       bankStore.incrementTimesUsed(roundData.id);
       io.to(room.code).emit("game:roundSelected", {
         roundName: room.round.name,
         roundType: room.round.roundType,
+        fastTrack: room.round.fastTrack,
         questionCount: room.round.questions.length,
       });
       emitQueue(room);
