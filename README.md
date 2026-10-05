@@ -46,8 +46,8 @@ When adding a round to the running order, the picker shows you the round's full 
 
 - **Multiple Choice** — 3 to 6 options; players tap the one they think is correct (or two, in a Go Wide round).
 - **Normal** — the answer board is the alphabet, laid out as a 4×6 grid of tiles (U/V and Y/Z share a tile, so all 26 letters fit). Players press the letter the answer *starts with*. A leading "The" is ignored, so "The Beatles" → **B**, "Paris" → **P**. Pressing the merged U/V or Y/Z tile counts as either letter.
-- **Number** — players type a numeric answer on a number pad (0–9, **C** to clear, **Enter** to submit).
-- **Sequence** — the round-builder sets 3–6 items in the correct order (e.g. "smallest to largest", "put these lyrics in order"). Players see the items shuffled and tap them in the order they believe is correct; the whole sequence must match to be correct.
+- **Number** — players type a numeric answer on a number pad (0–9, **C** to clear, **Enter** to submit). In a Go Wide round, an optional "Go Wide (±1)" toggle above the keypad also accepts the number 1 above or below the exact answer, for half points.
+- **Sequence** — the round-builder sets 3–6 items in the correct order (e.g. "smallest to largest", "put these lyrics in order"). Players see the items shuffled and tap them in the order they believe is correct; the whole sequence must match to be correct. In a Go Wide round, players can tap ⚡ on one item (in the pool or already placed) to mark it a wildcard — that item's position is ignored when checking the order, as long as everything else is still correctly ordered relative to each other — for half points.
 - **Picture modifier** — any question (any type above) can have a picture attached. When a question has a picture, the host screen shows it first with a **Reveal Answer Board** button; players see the picture and wait. Once revealed, the timer starts and the normal answer board appears, with the picture still shown.
 
 ## Round types
@@ -61,7 +61,7 @@ A correct answer is worth **5 points**. Standard, Evil, and Go Wide rounds all a
 | **Standard** | 5 points for a correct answer, plus the speed bonus above. Wrong or missed = 0. |
 | **Speed** ⚡ | Every correct answer scores the base 5 points — but the single fastest correct answer also gets an extra +5 bonus on top (10 total). No bonus for 2nd place onward, just the 5. |
 | **Evil** 😈 | 5 points for correct (plus the speed bonus), but a *wrong* (submitted) answer costs you 5 points. Skipping a question is always safe — only guessing wrong is punished. |
-| **Go Wide** 🎯 | Players pick **2** answers instead of 1 (multiple choice or Normal/letters questions). If either pick is right, they score half of whatever they would've scored — including any speed bonus — rounded to the nearest point. |
+| **Go Wide** 🎯 | A wider (but cheaper) shot at being correct, for half of whatever they would've scored — including any speed bonus — rounded to the nearest point. Multiple Choice/Normal: players pick **2** answers instead of 1, either one counts. Number: an optional toggle also accepts ±1 off the exact answer. Sequence: players can mark one item a wildcard, so its position doesn't count. |
 
 ### Fast Track
 

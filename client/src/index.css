@@ -812,9 +812,42 @@ body {
   margin: 8px 0;
 }
 
-.sequence-pool .answer-btn {
-  width: 100%;
+.sequence-pool-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sequence-pool-item .answer-btn {
+  flex: 1;
   justify-content: flex-start;
+}
+
+.sequence-chip-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sequence-chip-row .sequence-chip {
+  flex: 1;
+}
+
+.go-wide-toggle {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.go-wide-toggle.active,
+.go-wide-wildcard-btn.active {
+  border-color: var(--yellow);
+  background: var(--surface-2);
+  box-shadow: 0 0 0 2px var(--yellow) inset;
+}
+
+.go-wide-wildcard-btn {
+  flex-shrink: 0;
+  font-size: 1rem;
 }
 
 /* ---- Presentation / big-screen view ---- */

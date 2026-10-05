@@ -36,7 +36,9 @@ export default function PlayerGame() {
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [questionExpanded, setQuestionExpanded] = useState(false);
   const [numberInput, setNumberInput] = useState("");
+  const [wideNumber, setWideNumber] = useState(false); // number + Go Wide: accept ±1 for half points
   const [sequenceOrder, setSequenceOrder] = useState([]); // array of {text, originalIndex}
+  const [wideSkipIndex, setWideSkipIndex] = useState(null); // sequence + Go Wide: one item's position is ignored
   const [goWidePicks, setGoWidePicks] = useState([]); // array of optionIndex (multiple_choice) or letter (normal)
   const [myScore, setMyScore] = useState(0);
   const tickRef = useRef(null);
@@ -79,7 +81,9 @@ export default function PlayerGame() {
       setReveal(null);
       setQuestionExpanded(false);
       setNumberInput("");
+      setWideNumber(false);
       setSequenceOrder([]);
+      setWideSkipIndex(null);
       setGoWidePicks([]);
       setPhase("question");
       setSecondsLeft(b.timeLimitSeconds);
@@ -158,7 +162,7 @@ export default function PlayerGame() {
     if (d === "C") return setNumberInput("");
     if (d === "enter") {
       if (numberInput === "") return;
-      return submitResponse({ number: Number(numberInput) });
+      return submitResponse({ number: Number(numberInput), wide: wideNumber });
     }
     setNumberInput((s) => (s.length >= 12 ? s : s + d));
   }
@@ -179,8 +183,13 @@ export default function PlayerGame() {
     setSequenceOrder((order) => order.filter((_, i) => i !== index));
   }
 
+  function toggleWildcard(originalIndex) {
+    if (myAnswer) return;
+    setWideSkipIndex((cur) => (cur === originalIndex ? null : originalIndex));
+  }
+
   function submitSequence() {
-    submitResponse({ order: sequenceOrder.map((it) => it.originalIndex) });
+    submitResponse({ order: sequenceOrder.map((it) => it.originalIndex), wideSkipIndex });
   }
 
   const myStanding = standings.find((p) => p.name === myName);
@@ -279,6 +288,15 @@ export default function PlayerGame() {
               </div>
             ) : board.type === "number" ? (
               <div className="keypad-wrap">
+                {board.roundType === "go_wide" && (
+                  <button
+                    type="button"
+                    className={`btn go-wide-toggle ${wideNumber ? "active" : ""}`}
+                    onClick={() => setWideNumber((w) => !w)}
+                  >
+                    🎯 Go Wide (±1, half points){wideNumber ? " — ON" : ""}
+                  </button>
+                )}
                 <div className="keypad-display">{numberInput || "Enter your answer"}</div>
                 <div className="keypad-grid">
                   {KEYPAD_ROWS.flat().map((key) => (
@@ -296,19 +314,46 @@ export default function PlayerGame() {
             ) : board.type === "sequence" ? (
               <div className="sequence-wrap">
                 <p className="subtitle">Tap items in the correct order:</p>
+                {board.roundType === "go_wide" && (
+                  <p className="subtitle">
+                    Tap ⚡ on one item to make it a wildcard — its position won't count against you (half points).
+                  </p>
+                )}
                 <div className="sequence-chosen">
                   {sequenceOrder.length === 0 && <p className="subtitle">Nothing picked yet</p>}
                   {sequenceOrder.map((item, i) => (
-                    <button className="sequence-chip" key={item.originalIndex} onClick={() => undoSequenceItem(i)}>
-                      <span className="sequence-chip-num">{i + 1}</span> {item.text} ✕
-                    </button>
+                    <div className="sequence-chip-row" key={item.originalIndex}>
+                      <button className="sequence-chip" onClick={() => undoSequenceItem(i)}>
+                        <span className="sequence-chip-num">{i + 1}</span> {item.text} ✕
+                      </button>
+                      {board.roundType === "go_wide" && (
+                        <button
+                          type="button"
+                          className={`btn btn-small go-wide-wildcard-btn ${wideSkipIndex === item.originalIndex ? "active" : ""}`}
+                          onClick={() => toggleWildcard(item.originalIndex)}
+                        >
+                          ⚡
+                        </button>
+                      )}
+                    </div>
                   ))}
                 </div>
                 <div className="sequence-pool">
                   {sequencePool.map((item) => (
-                    <button className="btn answer-btn" key={item.originalIndex} onClick={() => pickSequenceItem(item)}>
-                      {item.text}
-                    </button>
+                    <div className="sequence-pool-item" key={item.originalIndex}>
+                      <button className="btn answer-btn" onClick={() => pickSequenceItem(item)}>
+                        {item.text}
+                      </button>
+                      {board.roundType === "go_wide" && (
+                        <button
+                          type="button"
+                          className={`btn btn-small go-wide-wildcard-btn ${wideSkipIndex === item.originalIndex ? "active" : ""}`}
+                          onClick={() => toggleWildcard(item.originalIndex)}
+                        >
+                          ⚡
+                        </button>
+                      )}
+                    </div>
                   ))}
                 </div>
                 <button

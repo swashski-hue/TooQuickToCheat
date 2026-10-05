@@ -20,7 +20,8 @@ export const ROUND_TYPES = {
   },
   go_wide: {
     label: "Go Wide",
-    description: "Players pick 2 answers instead of 1, for half the points (including any speed bonus).",
+    description:
+      "Half the points (including any speed bonus), for a wider shot at being correct: pick 2 answers (Multiple Choice/Normal), accept ±1 (Number), or mark one wildcard item whose position doesn't count (Sequence).",
   },
 };
 
@@ -54,6 +55,20 @@ function letterGroup(letter) {
 
 function arraysEqual(a, b) {
   return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((v, i) => v === b[i]);
+}
+
+/**
+ * Same as arraysEqual, but a `skipValue` is removed from both arrays first —
+ * used for a sequence question's Go Wide "wildcard": that item's position
+ * doesn't have to match, only the relative order of everything else does.
+ */
+function arraysEqualIgnoring(a, b, skipValue) {
+  if (skipValue == null) return arraysEqual(a, b);
+  if (!Array.isArray(a) || !Array.isArray(b)) return false;
+  return arraysEqual(
+    a.filter((v) => v !== skipValue),
+    b.filter((v) => v !== skipValue)
+  );
 }
 
 function shuffledWithOriginalIndex(options) {
@@ -302,10 +317,15 @@ export function submitAnswer(room, socketId, response) {
   const q = currentQuestion(room);
   const roundType = room.round.roundType;
   const elapsedMs = Date.now() - room.questionStartedAt;
-  const goWide = roundType === "go_wide" && (q.type === "multiple_choice" || q.type === "normal");
+  const goWideRound = roundType === "go_wide";
+  // Multiple choice/normal force the always-pick-2 mechanic whenever the round
+  // is Go Wide. Number/sequence instead offer it as a per-answer opt-in (see
+  // `usedGoWide` below) — picked up from `response.wide`/`response.wideSkipIndex`.
+  const goWide = goWideRound && (q.type === "multiple_choice" || q.type === "normal");
 
   let isCorrect = false;
   let given;
+  let usedGoWide = false;
 
   if (q.type === "normal") {
     const correctGroup = letterGroup(computeAnswerLetter(q.answerText));
@@ -315,23 +335,32 @@ export function submitAnswer(room, socketId, response) {
         : [];
       given = letters;
       isCorrect = letters.some((l) => l && letterGroup(l) === correctGroup);
+      usedGoWide = true;
     } else {
       given = (response?.letter || "").toUpperCase();
       isCorrect = !!given && letterGroup(given) === correctGroup;
     }
   } else if (q.type === "number") {
     given = Number(response?.number);
-    isCorrect = !Number.isNaN(given) && given === q.answerNumber;
+    usedGoWide = goWideRound && !!response?.wide;
+    // Going wide accepts the number 1 above or below the exact answer too.
+    isCorrect =
+      !Number.isNaN(given) &&
+      (usedGoWide ? Math.abs(given - q.answerNumber) <= 1 : given === q.answerNumber);
   } else if (q.type === "sequence") {
     given = Array.isArray(response?.order) ? response.order : null;
-    isCorrect = arraysEqual(
-      given,
-      q.options.map((_, i) => i)
-    );
+    const correctOrder = q.options.map((_, i) => i);
+    // Going wide designates one item (by its original index) as a "wildcard" —
+    // its position doesn't count, only everything else's relative order does.
+    const wideSkipIndex =
+      goWideRound && Number.isInteger(response?.wideSkipIndex) ? response.wideSkipIndex : null;
+    usedGoWide = wideSkipIndex != null;
+    isCorrect = arraysEqualIgnoring(given, correctOrder, wideSkipIndex);
   } else if (goWide) {
     const picks = Array.isArray(response?.optionIndices) ? response.optionIndices.slice(0, 2) : [];
     given = picks;
     isCorrect = picks.includes(q.correctIndex);
+    usedGoWide = true;
   } else {
     given = response?.optionIndex;
     isCorrect = given === q.correctIndex;
@@ -349,7 +378,7 @@ export function submitAnswer(room, socketId, response) {
       points = CORRECT_ANSWER_SCORE + (rank === 1 ? SPEED_ROUND_FASTEST_BONUS : 0);
     } else {
       const total = CORRECT_ANSWER_SCORE + (RANK_BONUS[rank - 1] || 0);
-      points = goWide ? Math.round(total / 2) : total;
+      points = usedGoWide ? Math.round(total / 2) : total;
     }
   } else if (roundType === "evil") {
     points = -CORRECT_ANSWER_SCORE;
