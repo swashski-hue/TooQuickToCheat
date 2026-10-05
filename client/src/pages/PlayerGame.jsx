@@ -1,0 +1,407 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { socket } from "../lib/socket.js";
+import { SERVER_URL } from "../lib/api.js";
+import { LETTER_TILES, tileLetters } from "../lib/answerLetter.js";
+import { ROUND_TYPE_LABELS } from "../lib/roundTypes.js";
+import { loadPlayerSession, clearPlayerSession } from "../lib/playerSession.js";
+
+const OPTION_LABELS = ["A", "B", "C", "D", "E", "F"];
+// Cycled like SNES face buttons (red/yellow/green/blue) for a retro feel.
+const OPTION_COLORS = ["var(--red)", "var(--yellow)", "var(--green)", "var(--blue)"];
+const KEYPAD_ROWS = [
+  ["1", "2", "3"],
+  ["4", "5", "6"],
+  ["7", "8", "9"],
+  ["C", "0", "enter"],
+];
+
+function ordinal(n) {
+  const suffixes = { 1: "st", 2: "nd", 3: "rd" };
+  return `${n}${suffixes[n] || "th"}`;
+}
+
+export default function PlayerGame() {
+  const { code } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const [phase, setPhase] = useState("lobby"); // lobby | picture | question | reveal | leaderboard | ended
+  const [picture, setPicture] = useState(null);
+  const [board, setBoard] = useState(null);
+  const [myAnswer, setMyAnswer] = useState(null); // { given, isCorrect, points, rank }
+  const [reveal, setReveal] = useState(null);
+  const [standings, setStandings] = useState([]);
+  const [hasMore, setHasMore] = useState(true);
+  const [secondsLeft, setSecondsLeft] = useState(0);
+  const [questionExpanded, setQuestionExpanded] = useState(false);
+  const [numberInput, setNumberInput] = useState("");
+  const [sequenceOrder, setSequenceOrder] = useState([]); // array of {text, originalIndex}
+  const [goWidePicks, setGoWidePicks] = useState([]); // array of optionIndex (multiple_choice) or letter (normal)
+  const [myScore, setMyScore] = useState(0);
+  const tickRef = useRef(null);
+
+  const myName = location.state?.name || loadPlayerSession(code);
+  const initialRoundName = location.state?.roundName;
+
+  useEffect(() => {
+    // Re-identify as this player by name on every (re)connect — a screen
+    // lock, backgrounded app, or brief Wi-Fi drop shouldn't lose the score.
+    // Also covers the very first connect right after "player:join".
+    function resume() {
+      if (!myName) return navigate("/join");
+      socket.emit("player:resume", { code, name: myName }, (res) => {
+        if (!res?.ok) {
+          clearPlayerSession();
+          alert(res?.error || "Could not rejoin — please join again.");
+          return navigate("/join");
+        }
+        if (typeof res.score === "number") setMyScore(res.score);
+      });
+    }
+
+    if (socket.connected) resume();
+    else socket.connect();
+    socket.on("connect", resume);
+
+    socket.on("game:picture", (data) => {
+      setPicture(data);
+      setBoard(null);
+      setMyAnswer(null);
+      setReveal(null);
+      setQuestionExpanded(false);
+      setPhase("picture");
+    });
+
+    socket.on("game:answerBoard", (b) => {
+      setBoard(b);
+      setMyAnswer(null);
+      setReveal(null);
+      setQuestionExpanded(false);
+      setNumberInput("");
+      setSequenceOrder([]);
+      setGoWidePicks([]);
+      setPhase("question");
+      setSecondsLeft(b.timeLimitSeconds);
+    });
+
+    socket.on("game:reveal", (data) => {
+      setReveal(data);
+      setPhase("reveal");
+    });
+
+    socket.on("game:leaderboard", ({ standings, hasMore }) => {
+      setStandings(standings);
+      setHasMore(hasMore);
+      setPhase("leaderboard");
+      const mine = standings.find((p) => p.name === myName);
+      if (mine) setMyScore(mine.score);
+    });
+
+    socket.on("game:ended", ({ standings }) => {
+      setStandings(standings);
+      setPhase("ended");
+      clearPlayerSession();
+    });
+
+    socket.on("game:hostLeft", () => {
+      clearPlayerSession();
+      alert("The host ended the session.");
+      navigate("/join");
+    });
+
+    return () => {
+      socket.off("connect", resume);
+      socket.off("game:picture");
+      socket.off("game:answerBoard");
+      socket.off("game:reveal");
+      socket.off("game:leaderboard");
+      socket.off("game:ended");
+      socket.off("game:hostLeft");
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code, myName, navigate]);
+
+  useEffect(() => {
+    if (phase !== "question") {
+      clearInterval(tickRef.current);
+      return;
+    }
+    tickRef.current = setInterval(() => setSecondsLeft((s) => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(tickRef.current);
+  }, [phase]);
+
+  function submitResponse(response) {
+    if (myAnswer) return;
+    socket.emit("player:submitAnswer", { code, response }, (res) => {
+      if (res.ok) setMyAnswer(res.result);
+    });
+  }
+
+  const isGoWide = board?.roundType === "go_wide" && (board.type === "multiple_choice" || board.type === "normal");
+
+  function toggleGoWidePick(value) {
+    if (myAnswer) return;
+    setGoWidePicks((picks) => {
+      if (picks.includes(value)) return picks.filter((p) => p !== value);
+      if (picks.length >= 2) return picks;
+      const next = [...picks, value];
+      if (next.length === 2) {
+        submitResponse(board.type === "normal" ? { letters: next } : { optionIndices: next });
+      }
+      return next;
+    });
+  }
+
+  function pressDigit(d) {
+    if (myAnswer) return;
+    if (d === "C") return setNumberInput("");
+    if (d === "enter") {
+      if (numberInput === "") return;
+      return submitResponse({ number: Number(numberInput) });
+    }
+    setNumberInput((s) => (s.length >= 12 ? s : s + d));
+  }
+
+  const sequencePool = useMemo(() => {
+    if (!board?.items) return [];
+    const chosen = new Set(sequenceOrder.map((it) => it.originalIndex));
+    return board.items.filter((it) => !chosen.has(it.originalIndex));
+  }, [board, sequenceOrder]);
+
+  function pickSequenceItem(item) {
+    if (myAnswer) return;
+    setSequenceOrder((order) => [...order, item]);
+  }
+
+  function undoSequenceItem(index) {
+    if (myAnswer) return;
+    setSequenceOrder((order) => order.filter((_, i) => i !== index));
+  }
+
+  function submitSequence() {
+    submitResponse({ order: sequenceOrder.map((it) => it.originalIndex) });
+  }
+
+  const myStanding = standings.find((p) => p.name === myName);
+  const myRank = standings.findIndex((p) => p.name === myName) + 1;
+  const pictureUrl = picture?.pictureUrl || board?.pictureUrl;
+  const questionText = picture?.text || board?.text;
+  const roundBadge = board?.roundType && board.roundType !== "standard" ? ROUND_TYPE_LABELS[board.roundType] : null;
+
+  return (
+    <div className="player-screen">
+      {phase === "lobby" && (
+        <div className="screen center">
+          <h1 className="title">You're in!</h1>
+          <p className="subtitle">{initialRoundName || "Waiting for the host to pick a round..."}</p>
+          <p className="subtitle">Waiting for the host to start the quiz...</p>
+        </div>
+      )}
+
+      {phase === "picture" && picture && (
+        <div className="screen center">
+          {pictureUrl && (
+            <div className="picture-display">
+              <img src={`${SERVER_URL}${pictureUrl}`} alt="" />
+            </div>
+          )}
+          <h2 className="question-text">{picture.text}</h2>
+          <p className="subtitle">Get ready — the answer board is coming up...</p>
+        </div>
+      )}
+
+      {phase === "question" && board && (
+        <>
+          <div className="top-bar">
+            <span className="top-bar-score">{myScore} pts</span>
+            <span className="top-bar-progress">
+              Q{board.index + 1}/{board.total}
+            </span>
+            <span className="top-bar-timer">{secondsLeft}s</span>
+          </div>
+          <div className="timer-track">
+            <div
+              className="timer-fill"
+              style={{ width: `${(100 * secondsLeft) / board.timeLimitSeconds}%` }}
+            />
+          </div>
+          {roundBadge && <div className="round-badge">{roundBadge} Round</div>}
+
+          <button
+            className={`question-panel ${questionExpanded ? "expanded" : ""}`}
+            onClick={() => setQuestionExpanded((v) => !v)}
+          >
+            {pictureUrl && questionExpanded && (
+              <div className="picture-display small">
+                <img src={`${SERVER_URL}${pictureUrl}`} alt="" />
+              </div>
+            )}
+            <p className={questionExpanded ? "question-text" : "question-text clamped"}>{questionText}</p>
+            <span className="question-hint">{questionExpanded ? "Tap to collapse" : "Tap question to see more..."}</span>
+          </button>
+
+          <div className="answer-area">
+            {isGoWide && !myAnswer && (
+              <p className="subtitle center-text">Pick 2 answers ({goWidePicks.length}/2 picked)</p>
+            )}
+            {myAnswer ? (
+              <p className="subtitle center-text">Answer locked in. Waiting for others...</p>
+            ) : board.type === "multiple_choice" ? (
+              <div className="answer-list">
+                {board.options.map((opt, i) => (
+                  <button
+                    className={`answer-row ${isGoWide && goWidePicks.includes(i) ? "picked" : ""}`}
+                    key={i}
+                    onClick={() => (isGoWide ? toggleGoWidePick(i) : submitResponse({ optionIndex: i }))}
+                  >
+                    <span className="option-label" style={{ background: OPTION_COLORS[i % OPTION_COLORS.length] }}>
+                      {OPTION_LABELS[i]}
+                    </span>
+                    <span className="option-text">{opt}</span>
+                  </button>
+                ))}
+              </div>
+            ) : board.type === "normal" ? (
+              <div className="letter-grid">
+                {LETTER_TILES.map((tile) => {
+                  const letter = tileLetters(tile)[0];
+                  return (
+                    <button
+                      className={`letter-btn ${isGoWide && goWidePicks.includes(letter) ? "picked" : ""}`}
+                      key={tile}
+                      onClick={() => (isGoWide ? toggleGoWidePick(letter) : submitResponse({ letter }))}
+                    >
+                      {tile}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : board.type === "number" ? (
+              <div className="keypad-wrap">
+                <div className="keypad-display">{numberInput || "Enter your answer"}</div>
+                <div className="keypad-grid">
+                  {KEYPAD_ROWS.flat().map((key) => (
+                    <button
+                      key={key}
+                      className={`keypad-btn ${key === "enter" ? "keypad-enter" : ""} ${key === "C" ? "keypad-clear" : ""}`}
+                      onClick={() => pressDigit(key)}
+                      disabled={key === "enter" && numberInput === ""}
+                    >
+                      {key === "enter" ? "Enter" : key}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : board.type === "sequence" ? (
+              <div className="sequence-wrap">
+                <p className="subtitle">Tap items in the correct order:</p>
+                <div className="sequence-chosen">
+                  {sequenceOrder.length === 0 && <p className="subtitle">Nothing picked yet</p>}
+                  {sequenceOrder.map((item, i) => (
+                    <button className="sequence-chip" key={item.originalIndex} onClick={() => undoSequenceItem(i)}>
+                      <span className="sequence-chip-num">{i + 1}</span> {item.text} ✕
+                    </button>
+                  ))}
+                </div>
+                <div className="sequence-pool">
+                  {sequencePool.map((item) => (
+                    <button className="btn answer-btn" key={item.originalIndex} onClick={() => pickSequenceItem(item)}>
+                      {item.text}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  className="btn btn-primary btn-large"
+                  onClick={submitSequence}
+                  disabled={sequenceOrder.length !== board.items.length}
+                >
+                  Submit order
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </>
+      )}
+
+      {phase === "reveal" && reveal && board && (
+        <div className="screen center">
+          {myAnswer ? (
+            myAnswer.isCorrect ? (
+              <>
+                <h1 className="title correct-text">Correct! 🎉</h1>
+                <p className="subtitle">
+                  +{myAnswer.points} points
+                  {myAnswer.rank && myAnswer.rank <= 5 && ` — ${ordinal(myAnswer.rank)} fastest!`}
+                </p>
+              </>
+            ) : (
+              <>
+                <h1 className="title wrong-text">Not quite</h1>
+                {myAnswer.points !== 0 && <p className="subtitle wrong-text">{myAnswer.points} points</p>}
+              </>
+            )
+          ) : (
+            <h1 className="title wrong-text">Time's up!</h1>
+          )}
+          {reveal.type === "multiple_choice" && (
+            <p className="subtitle">
+              Correct answer: {OPTION_LABELS[reveal.correctIndex]}. {board.options[reveal.correctIndex]}
+            </p>
+          )}
+          {reveal.type === "normal" && (
+            <p className="subtitle">
+              Correct answer: {reveal.correctLetter} — {reveal.answerText}
+            </p>
+          )}
+          {reveal.type === "number" && <p className="subtitle">Correct answer: {reveal.correctNumber}</p>}
+          {reveal.type === "sequence" && (
+            <p className="subtitle">Correct order: {reveal.correctOrder.join(" → ")}</p>
+          )}
+        </div>
+      )}
+
+      {phase === "leaderboard" && (
+        <div className="screen center">
+          <h2>{hasMore ? "Leaderboard" : "Round over!"}</h2>
+          {myStanding && (
+            <p className="subtitle">
+              You're #{myRank} with {myStanding.score} points
+            </p>
+          )}
+          <ol className="leaderboard">
+            {standings.slice(0, 5).map((p, i) => (
+              <li key={p.id} className={p.name === myName ? "me" : ""}>
+                <span className="rank">#{i + 1}</span> {p.name} <span className="score">{p.score}</span>
+              </li>
+            ))}
+          </ol>
+          <p className="subtitle">
+            {hasMore ? "Next question coming up..." : "Waiting for the host to pick the next round..."}
+          </p>
+        </div>
+      )}
+
+      {phase === "ended" && (
+        <div className="screen center">
+          <h1 className="title">🏆 Final Results</h1>
+          {myStanding && (
+            <p className="subtitle">
+              You finished #{myRank} with {myStanding.score} points
+            </p>
+          )}
+          <ol className="leaderboard">
+            {standings.map((p, i) => (
+              <li key={p.id} className={p.name === myName ? "me" : ""}>
+                <span className="rank">#{i + 1}</span> {p.name} <span className="score">{p.score}</span>
+              </li>
+            ))}
+          </ol>
+          <button className="btn btn-primary" onClick={() => navigate("/join")}>
+            Join another quiz
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}

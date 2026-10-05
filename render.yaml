@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: too-quick-to-cheat
+    runtime: node
+    plan: starter
+    buildCommand: cd client && npm ci && npm run build && cd ../server && npm ci
+    startCommand: cd server && npm start
+    healthCheckPath: /api/round-types
+    envVars:
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: INVITE_CODE
+        sync: false
+      - key: DATA_DIR
+        value: /var/data
+    disk:
+      name: quiz-data
+      mountPath: /var/data
+      sizeGB: 1
