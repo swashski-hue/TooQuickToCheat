@@ -43,6 +43,25 @@ export default function HostRoom() {
         if (!res?.ok) return navigate("/host");
         if (res.round) setCurrentRound(res.round);
         if (res.queue) setQueue(res.queue);
+
+        // Land back on the screen we were actually on, not always the lobby —
+        // matters a lot now that nothing auto-advances past reveal/question.
+        const live = res.live;
+        if (live?.phase === "intro") {
+          setIntro(live.intro);
+          setBoard(null);
+          setReveal(null);
+          setPhase("intro");
+        } else if (live?.phase === "question") {
+          setBoard(live.board);
+          setReveal(null);
+          setSecondsLeft(live.secondsLeft);
+          setPhase("question");
+        } else if (live?.phase === "reveal") {
+          setBoard(live.board);
+          setReveal(live.reveal);
+          setPhase("reveal");
+        }
       });
     }
 

@@ -237,12 +237,35 @@ function emitLeaderboard(room) {
 
 function doReveal(room) {
   const reveal = game.revealAnswer(room);
+  room.lastReveal = reveal; // cached so a host reconnect mid-reveal can restore this screen, not just the lobby
   io.to(room.code).emit("game:reveal", reveal);
 }
 
 function doRevealBoard(room) {
   const board = game.revealBoard(room, () => doReveal(room));
+  room.lastBoard = board; // same reason as room.lastReveal above
   io.to(room.code).emit("game:answerBoard", board);
+}
+
+// What a reconnecting host needs to land back on the screen they were
+// actually on, instead of always resetting to the lobby. Re-derives from
+// current state where that's safe (intro); replays the cached payload where
+// it isn't (question/reveal — revealBoard()/revealAnswer() both mutate state,
+// so they can't just be called again).
+function hostLiveState(room) {
+  if (room.state === "intro") {
+    return { phase: "intro", intro: game.questionIntroPayload(room) };
+  }
+  if (room.state === "question" && room.lastBoard) {
+    const q = game.currentQuestion(room);
+    const elapsedSec = (Date.now() - room.questionStartedAt) / 1000;
+    const secondsLeft = Math.max(0, Math.round(q.timeLimitSeconds - elapsedSec));
+    return { phase: "question", board: room.lastBoard, secondsLeft };
+  }
+  if (room.state === "reveal" && room.lastReveal) {
+    return { phase: "reveal", board: room.lastBoard, reveal: room.lastReveal };
+  }
+  return null;
 }
 
 io.on("connection", (socket) => {
@@ -287,6 +310,7 @@ io.on("connection", (socket) => {
           }
         : null,
       queue: game.queueList(room),
+      live: hostLiveState(room),
     });
   });
 
