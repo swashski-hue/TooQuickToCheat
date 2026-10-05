@@ -54,13 +54,13 @@ When adding a round to the running order, the picker shows you the round's full 
 
 Picked live, right before you start each round:
 
-A correct answer is worth **10 points**. Standard, Evil, and Go Wide rounds all also give a speed bonus to the first 5 correct answers: 1st +5, 2nd +4, 3rd +3, 4th +2, 5th +1 (6th onwards gets no bonus, just the 10).
+A correct answer is worth **5 points**. Standard, Evil, and Go Wide rounds all also give a speed bonus to the first 5 correct answers: 1st +5, 2nd +4, 3rd +3, 4th +2, 5th +1 (6th onwards gets no bonus, just the 5).
 
 | Round type | How it scores |
 |---|---|
-| **Standard** | 10 points for a correct answer, plus the speed bonus above. Wrong or missed = 0. |
-| **Speed** ⚡ | Every correct answer scores the base 10 points — but the single fastest correct answer also gets an extra +10 bonus on top (20 total). No bonus for 2nd place onward, just the 10. |
-| **Evil** 😈 | 10 points for correct (plus the speed bonus), but a *wrong* (submitted) answer costs you 10 points. Skipping a question is always safe — only guessing wrong is punished. |
+| **Standard** | 5 points for a correct answer, plus the speed bonus above. Wrong or missed = 0. |
+| **Speed** ⚡ | Every correct answer scores the base 5 points — but the single fastest correct answer also gets an extra +5 bonus on top (10 total). No bonus for 2nd place onward, just the 5. |
+| **Evil** 😈 | 5 points for correct (plus the speed bonus), but a *wrong* (submitted) answer costs you 5 points. Skipping a question is always safe — only guessing wrong is punished. |
 | **Go Wide** 🎯 | Players pick **2** answers instead of 1 (multiple choice or Normal/letters questions). If either pick is right, they score half of whatever they would've scored — including any speed bonus — rounded to the nearest point. |
 
 ### Fast Track

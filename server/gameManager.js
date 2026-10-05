@@ -1,22 +1,22 @@
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I to avoid confusion
-const CORRECT_ANSWER_SCORE = 10;
+const CORRECT_ANSWER_SCORE = 5;
 // Standard/Evil/Go Wide rounds all give this bonus to the 1st..5th correct answer.
 const RANK_BONUS = [5, 4, 3, 2, 1];
 // A "speed" round gives everyone correct the base score, plus this extra bonus for ONLY the single fastest.
-const SPEED_ROUND_FASTEST_BONUS = 10;
+const SPEED_ROUND_FASTEST_BONUS = 5;
 
 export const ROUND_TYPES = {
   standard: {
     label: "Standard",
-    description: "10 points for a correct answer, plus a speed bonus for the first 5 correct: +5/+4/+3/+2/+1.",
+    description: "5 points for a correct answer, plus a speed bonus for the first 5 correct: +5/+4/+3/+2/+1.",
   },
   speed: {
     label: "Speed",
-    description: "10 points for any correct answer — but the single fastest correct answer gets a bonus 10 on top.",
+    description: "5 points for any correct answer — but the single fastest correct answer gets a bonus 5 on top.",
   },
   evil: {
     label: "Evil",
-    description: "A wrong answer costs you 10 points. Skipping is safe. Correct answers still get the speed bonus.",
+    description: "A wrong answer costs you 5 points. Skipping is safe. Correct answers still get the speed bonus.",
   },
   go_wide: {
     label: "Go Wide",
