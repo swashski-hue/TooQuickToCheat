@@ -48,6 +48,7 @@ body {
 .screen {
   width: 100%;
   max-width: 640px;
+  margin: 0 auto;
   padding: 24px 20px 60px;
 }
 
@@ -331,6 +332,7 @@ body {
 .host-screen {
   width: 100%;
   max-width: 1100px;
+  margin: 0 auto;
   padding: 24px 20px 60px;
 }
 
@@ -579,6 +581,7 @@ body {
 .player-screen {
   width: 100%;
   max-width: 480px;
+  margin: 0 auto;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -1309,6 +1312,7 @@ body {
 .editor-screen {
   width: 100%;
   max-width: 1100px;
+  margin: 0 auto;
   padding: 24px 20px 60px;
 }
 
