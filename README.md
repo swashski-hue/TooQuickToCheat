@@ -1,12 +1,14 @@
 # Too Quick To Cheat Quizzing
 
-A self-hosted SpeedQuizzing-style live quiz: you run it on your own machine, a quiz master controls the game from a control screen, a big-screen presentation view can be projected or shared over a call, and players join from their phones via a room code and answer for points.
+A SpeedQuizzing-style live quiz: a quiz master controls the game from a control screen, a big-screen presentation view can be projected or shared over a call, and players join from their phones via a room code and answer for points.
+
+**🔗 Live at: https://too-quick-to-cheat.onrender.com** — bookmark it, nothing to install or run locally to play.
 
 Rounds aren't planned out in advance as one fixed quiz — you build up a shared **Quiz Bank** of reusable rounds ahead of time, and the quiz master builds a **running order** live from that bank (picking each round's type as it's added). The running order can be built up while players are still joining, and stays editable — reordered, added to, or trimmed down — right up until a round is actually started; only the round currently being played is locked in.
 
 ## Structure
 
-- `server/` — Node.js + Express + Socket.IO. Holds the Quiz Bank (`server/data/bank.json`) and all live-game state/logic.
+- `server/` — Node.js + Express + Socket.IO. Holds the Quiz Bank (`bank.json`), accounts (`users.json`), and all live-game state/logic. In production it also serves the built client, so the whole app is one service behind one URL.
 - `client/` — Vite + React web app, with three distinct screen roles:
 
   | Screen | Route | Job |
@@ -17,74 +19,26 @@ Rounds aren't planned out in advance as one fixed quiz — you build up a shared
 
   The Quiz Master and Presentation screens are independent connections to the same room (a "spectator" connection that just listens — it doesn't control the game or take a player slot), so you can have both open at once, on different devices if you like.
 
-## Running it
+## Hosting and playing a game
 
-In two terminals:
-
-```bash
-cd server
-npm install   # first time only
-npm start
-```
-
-```bash
-cd client
-npm install   # first time only
-npm run dev
-```
-
-Then open `http://localhost:5173` on the host computer.
-
-The server reads three optional environment variables — set them before `npm start` (e.g. `SESSION_SECRET=... INVITE_CODE=... ALLOWED_ORIGINS=... npm start`) for anything beyond local testing:
-
-- `SESSION_SECRET` — signs login sessions. Without it, a dev default is used and a warning is printed — fine for testing on your own machine, not for a real deployment.
-- `INVITE_CODE` — required to create a new account (see **Accounts & access** below). Defaults to `quiznight` with a warning if unset.
-- `ALLOWED_ORIGINS` — comma-separated list of origins allowed to make credentialed requests (e.g. `https://quiz.example.com`). Without it, the server reflects any request origin back, which is what makes LAN play (below) work across whatever IP your network hands out — fine for local/LAN use, not for a real public deployment.
+1. Go to **https://too-quick-to-cheat.onrender.com** → **Sign in** (see **Accounts & access** below) → **Host a quiz** → **Start New Game**. Note the room code shown.
+2. Players, from anywhere (not restricted to your Wi-Fi), open **https://too-quick-to-cheat.onrender.com/join** — or just the homepage → **Join a quiz** — and enter the room code and a name. No account needed to join.
+3. While players are joining, use **+ Add round** on the Quiz Master screen to build up your running order — pick a round from the bank and a round type for each. Reorder or remove entries with the ↑/↓/✕ buttons any time.
+4. Click **Start Quiz** once you've got at least one round queued and one player joined. The running order stays open the whole game — keep adding, removing, or reordering upcoming rounds even while a question is live; only the round actually being played is locked in.
+5. After a round's last question, click **Start Next Round** to pop the next queued round, or add one first if the queue's empty — or end the quiz.
+6. Open **📺 Presentation Screen** on a second device/tab (projector, TV, screen-share) for a read-only big-screen view everyone can watch.
 
 ## Accounts & access
 
 Hosting a game and managing the Quiz Bank require signing in; **joining a game as a player never does** — that stays frictionless, just a room code and a nickname.
 
-Anyone can create their own account from `/login` — **Create an account** — but only with the shared invite code (see above). Give that code to friends you want to let in; nobody else can self-register. Once signed in, you can host your own games independently of anyone else's, and the Quiz Bank is shared: every signed-in person can see, use, and edit everyone's *public* rounds (communal, like a shared doc), while a *private* round is only ever visible to the person who made it — see **Round visibility** below.
+Anyone can create their own account from `/login` — **Create an account** — but only with the shared invite code (set as `INVITE_CODE` on the deployment, see **Updating the deployment** below). Give that code to friends you want to let in; nobody else can self-register. Once signed in, you can host your own games independently of anyone else's, and the Quiz Bank is shared: every signed-in person can see, use, and edit everyone's *public* rounds (communal, like a shared doc), while a *private* round is only ever visible to the person who made it — see **Round visibility** below.
 
 Login attempts are rate-limited per IP (10 per 15 minutes) to make password guessing impractical.
 
-## Playing on phones (same Wi-Fi)
-
-1. Find the host computer's LAN IP (Windows: `ipconfig`, look for IPv4 Address, e.g. `192.168.1.42`).
-2. On the host computer, go to `http://localhost:5173` → **Host a quiz** → **Start New Game**. Note the room code shown.
-3. On each phone (same Wi-Fi network), open `http://192.168.1.42:5173/join`, enter the room code and a name.
-4. While players are joining, use **+ Add round** on the Quiz Master screen to build up your running order — pick a round from the bank and a round type for each. Reorder or remove entries with the ↑/↓/✕ buttons any time.
-5. Click **Start Quiz** once you've got at least one round queued and one player joined. The running order stays open the whole game — keep adding, removing, or reordering upcoming rounds even while a question is live; only the round actually being played is locked in.
-6. After a round's last question, click **Start Next Round** to pop the next queued round, or add one first if the queue's empty — or end the quiz.
-
-Both the client (5173) and server (4000) need to be reachable from phones — if Windows Firewall prompts when you first start them, allow access on private networks.
-
-## Deploying for friends over the internet (Render)
-
-For a permanent URL you can just bookmark and open — no terminal, nothing to start on your own PC — this repo includes a [Render](https://render.com) Blueprint (`render.yaml`) that deploys the server (which serves the built client itself, so it's one service/one URL) with a persistent disk for the Quiz Bank, accounts, and uploaded images.
-
-**One-time setup:**
-
-1. Push this repo to GitHub (Render deploys from a connected Git repo):
-   ```bash
-   git remote add origin <your-new-empty-github-repo-url>
-   git push -u origin main
-   ```
-   (Create the empty repo first at [github.com/new](https://github.com/new) — **don't** tick "Add a README", since this repo already has one.)
-2. On [dashboard.render.com](https://dashboard.render.com), sign up/log in, then **New +** → **Blueprint**, and connect the GitHub repo you just pushed. Render reads `render.yaml` and sets up the web service, persistent disk, and a generated `SESSION_SECRET` automatically.
-3. When prompted for `INVITE_CODE`, enter whatever invite code you want to give friends (this gates who can create an account — see **Accounts & access** above).
-4. Click deploy. Render builds the client, installs the server, and gives you a URL like `https://too-quick-to-cheat.onrender.com`.
-
-That URL is permanent — bookmark it. Every time you want to host, just open it; there's nothing to start locally. The `starter` plan in `render.yaml` costs a few dollars a month and keeps the app always-on with a real persistent disk (the free tier spins down when idle and wipes its disk on restart, which would lose your Quiz Bank between game nights — this repo is deliberately *not* configured for that tier).
-
-**No-cost, no-deployment alternative:** if you'd rather not pay anything and don't mind a bit more terminal work each time, a [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) run from your own PC gets you a temporary public URL for free, with your PC acting as the server for that session. Install `cloudflared` (`winget install --id Cloudflare.cloudflared -e`), build the client once (`cd client && npm run build`), then each time you want to host: start the server (`cd server && SESSION_SECRET=<random string> INVITE_CODE=<code> npm start`) and in a second terminal run `cloudflared tunnel --url http://localhost:4000` — it prints a random `https://<something>.trycloudflare.com` URL to share, which changes every time you restart the tunnel.
-
-See `PROJECT_STATUS.md` for known gaps either way (e.g. game state is in-memory only — a server crash or redeploy mid-game loses the round in progress).
-
 ## The Quiz Bank
 
-Go to **📚 Manage Quiz Bank** (from the home screen or the Host a Quiz screen) to build up **rounds** ahead of time — anyone hosting from this install shares the same bank. Each round has a name and up to 10 questions, any mix of the four question types below, plus who created it and when. Rounds are just content; **how a round scores points is decided live when it's added to the running order** (see Round Types), so the same round can be played as a Speed round one night and an Evil round the next.
+Go to **📚 Manage Quiz Bank** (from the home screen or the Host a Quiz screen) to build up **rounds** ahead of time — everyone signed in shares the same bank. Each round has a name and up to 10 questions, any mix of the four question types below, plus who created it and when. Rounds are just content; **how a round scores points is decided live when it's added to the running order** (see Round Types), so the same round can be played as a Speed round one night and an Evil round the next.
 
 When adding a round to the running order, the picker shows you the round's full question list (text and type for each), plus who made it and when — so you know exactly what you're queuing up before committing to it.
 
@@ -129,4 +83,80 @@ Every round is **🌐 Public** or **🔒 Private**, set when you create it — o
 
 Player answer screens are mobile-first — a collapsible question panel (tap to expand) keeps the answer board front and center on a phone screen.
 
-The Quiz Bank is stored in `server/data/bank.json`, accounts in `server/data/users.json`, and uploaded pictures in `server/data/uploads/` — back all three up if you build a library you care about.
+The Quiz Bank, accounts, and uploaded pictures all live on the deployment's persistent disk — see **Updating the deployment** below for where that's backed up.
+
+## Updating the deployment
+
+The live app is deployed on [Render](https://render.com) from this repo via `render.yaml` (a Render "Blueprint" — defines the web service, a 1GB persistent disk for the Quiz Bank/accounts/uploads, and env vars). Render auto-deploys on every push to `main`:
+
+```bash
+git add .
+git commit -m "..."
+git push
+```
+
+Watch the build in the Render dashboard → the `too-quick-to-cheat` service → **Events** tab. It usually takes a minute or two.
+
+Environment variables (`SESSION_SECRET`, `INVITE_CODE`, `DATA_DIR`) are set in the Render dashboard under the service's **Environment** tab, not passed on a command line — change `INVITE_CODE` there if you want to rotate who can sign up.
+
+### Using a custom domain instead of `*.onrender.com`
+
+1. If you don't already have a domain, buy one from any registrar (Namecheap, Cloudflare Registrar, Google Domains successor, etc.) — a few dollars a year for most TLDs. This is a purchase on a site I can't complete for you.
+2. In the Render dashboard, open the `too-quick-to-cheat` service → **Settings** → **Custom Domains** → **Add Custom Domain**, and type the domain or subdomain you want (e.g. `quiz.yourdomain.com`).
+3. Render shows you a DNS record to create (a `CNAME` for a subdomain, or an `A`/`ALIAS` record for a bare/apex domain) — add exactly that record at your registrar's or DNS provider's dashboard.
+4. Wait for DNS to propagate (minutes to a few hours) — Render auto-detects it and provisions a free TLS certificate once it sees the record, no extra step needed.
+5. Once it shows **Verified** in Render, that domain serves the app exactly like the `.onrender.com` URL — share the new one instead.
+
+The `.onrender.com` URL keeps working alongside a custom domain; you don't have to migrate anything, just start sharing the nicer link once it's verified.
+
+## Developing locally
+
+Local development runs the client and server as two separate processes (hot-reload on the client, no production build needed):
+
+```bash
+cd server
+npm install   # first time only
+npm start
+```
+
+```bash
+cd client
+npm install   # first time only
+npm run dev
+```
+
+Then open `http://localhost:5173` on your machine.
+
+The server reads three optional environment variables — set them before `npm start` (e.g. `SESSION_SECRET=... INVITE_CODE=... ALLOWED_ORIGINS=... npm start`) for anything beyond local testing:
+
+- `SESSION_SECRET` — signs login sessions. Without it, a dev default is used and a warning is printed — fine for testing on your own machine, not for a real deployment.
+- `INVITE_CODE` — required to create a new account (see **Accounts & access** above). Defaults to `quiznight` with a warning if unset.
+- `ALLOWED_ORIGINS` — comma-separated list of origins allowed to make credentialed requests. Without it, the server reflects any request origin back — fine for local/LAN use, not needed at all for the Render deployment (same-origin, see **Structure** above) but available as extra hardening if you ever split client/server hosting again.
+- `DATA_DIR` — where `bank.json`, `users.json`, and `uploads/` live. Defaults to `server/data` locally; the Render deployment sets this to its mounted persistent disk.
+
+### Playing on phones over LAN (local dev only)
+
+Useful for testing without deploying anything:
+
+1. Find your computer's LAN IP (Windows: `ipconfig`, look for IPv4 Address, e.g. `192.168.1.42`).
+2. Start both processes as above, then on each phone (same Wi-Fi network) open `http://192.168.1.42:5173/join` instead of the production URL.
+3. Both the client (5173) and server (4000) need to be reachable from phones — if Windows Firewall prompts when you first start them, allow access on private networks.
+
+### No-cost public URL without deploying (Cloudflare Tunnel)
+
+If you want a temporary public URL without pushing to the live deployment — e.g. testing an unreleased change with a friend — build the client and serve it from the server itself, then tunnel that:
+
+```bash
+cd client && npm install && npm run build
+cd ../server && SESSION_SECRET=<random string> INVITE_CODE=<code> npm start
+```
+
+In a second terminal:
+
+```bash
+cloudflared tunnel --url http://localhost:4000
+```
+
+(Install `cloudflared` first: `winget install --id Cloudflare.cloudflared -e`.) It prints a random `https://<something>.trycloudflare.com` URL — that's the whole app, usable by anyone. It changes every time you restart the tunnel, and this doesn't touch the Render deployment or its data at all.
+
+See `PROJECT_STATUS.md` for known gaps (e.g. game state is in-memory only — a server crash or redeploy mid-game loses the round in progress).
