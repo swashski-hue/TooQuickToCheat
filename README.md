@@ -2,7 +2,7 @@
 
 A SpeedQuizzing-style live quiz: a quiz master controls the game from a control screen, a big-screen presentation view can be projected or shared over a call, and players join from their phones via a room code and answer for points.
 
-**🔗 Live at: https://too-quick-to-cheat.onrender.com** — bookmark it, nothing to install or run locally to play.
+**🔗 Live at: https://2quick2cheat.com** — bookmark it, nothing to install or run locally to play. (Also reachable at `www.2quick2cheat.com` and the original `too-quick-to-cheat.onrender.com`, which keeps working alongside the custom domain.)
 
 Rounds aren't planned out in advance as one fixed quiz — you build up a shared **Quiz Bank** of reusable rounds ahead of time, and the quiz master builds a **running order** live from that bank (picking each round's type as it's added). The running order can be built up while players are still joining, and stays editable — reordered, added to, or trimmed down — right up until a round is actually started; only the round currently being played is locked in.
 
@@ -21,8 +21,8 @@ Rounds aren't planned out in advance as one fixed quiz — you build up a shared
 
 ## Hosting and playing a game
 
-1. Go to **https://too-quick-to-cheat.onrender.com** → **Sign in** (see **Accounts & access** below) → **Host a quiz** → **Start New Game**. Note the room code shown.
-2. Players, from anywhere (not restricted to your Wi-Fi), open **https://too-quick-to-cheat.onrender.com/join** — or just the homepage → **Join a quiz** — and enter the room code and a name. No account needed to join.
+1. Go to **https://2quick2cheat.com** → **Sign in** (see **Accounts & access** below) → **Host a quiz** → **Start New Game**. Note the room code shown.
+2. Players, from anywhere (not restricted to your Wi-Fi), open **https://2quick2cheat.com/join** — or just the homepage → **Join a quiz** — and enter the room code and a name. No account needed to join.
 3. While players are joining, use **+ Add round** on the Quiz Master screen to build up your running order — pick a round from the bank and a round type for each. Reorder or remove entries with the ↑/↓/✕ buttons any time.
 4. Click **Start Quiz** once you've got at least one round queued and one player joined. The running order stays open the whole game — keep adding, removing, or reordering upcoming rounds even while a question is live; only the round actually being played is locked in.
 5. After a round's last question, click **Start Next Round** to pop the next queued round, or add one first if the queue's empty — or end the quiz.
@@ -99,15 +99,20 @@ Watch the build in the Render dashboard → the `too-quick-to-cheat` service →
 
 Environment variables (`SESSION_SECRET`, `INVITE_CODE`, `DATA_DIR`) are set in the Render dashboard under the service's **Environment** tab, not passed on a command line — change `INVITE_CODE` there if you want to rotate who can sign up.
 
-### Using a custom domain instead of `*.onrender.com`
+### Custom domain
 
-1. If you don't already have a domain, buy one from any registrar (Namecheap, Cloudflare Registrar, Google Domains successor, etc.) — a few dollars a year for most TLDs. This is a purchase on a site I can't complete for you.
-2. In the Render dashboard, open the `too-quick-to-cheat` service → **Settings** → **Custom Domains** → **Add Custom Domain**, and type the domain or subdomain you want (e.g. `quiz.yourdomain.com`).
-3. Render shows you a DNS record to create (a `CNAME` for a subdomain, or an `A`/`ALIAS` record for a bare/apex domain) — add exactly that record at your registrar's or DNS provider's dashboard.
-4. Wait for DNS to propagate (minutes to a few hours) — Render auto-detects it and provisions a free TLS certificate once it sees the record, no extra step needed.
-5. Once it shows **Verified** in Render, that domain serves the app exactly like the `.onrender.com` URL — share the new one instead.
+`2quick2cheat.com` (bought via GoDaddy) is set up as the primary domain, with `www.2quick2cheat.com` as a second verified domain and the bare domain redirecting to it. The original `too-quick-to-cheat.onrender.com` URL is left enabled in Render alongside both — nothing to migrate, it just keeps working.
 
-The `.onrender.com` URL keeps working alongside a custom domain; you don't have to migrate anything, just start sharing the nicer link once it's verified.
+DNS lives in GoDaddy's DNS Management for the domain. Two records point it at Render:
+
+| Type | Name | Value |
+|---|---|---|
+| A | `@` | `216.24.57.1` (Render's apex-domain target — GoDaddy doesn't support `CNAME`/`ANAME` on a bare domain, so Render's docs call for an `A` record here instead) |
+| CNAME | `www` | `too-quick-to-cheat.onrender.com.` |
+
+Everything else in GoDaddy's DNS (both `NS` records, the `SOA` record, the `_domainconnect` CNAME, and the `_dmarc` TXT record) is GoDaddy's own default setup, unrelated to Render — don't touch those.
+
+To add another domain or subdomain later: Render dashboard → the `too-quick-to-cheat` service → **Settings** → **Custom Domains** → **Add Custom Domain**, type the domain, and Render shows the exact DNS record to add at your registrar. Verification and the free TLS certificate are both automatic once the DNS record resolves — no extra step needed, though the certificate can take a little while to issue even after DNS verification passes.
 
 ## Developing locally
 
