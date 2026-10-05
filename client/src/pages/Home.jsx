@@ -7,7 +7,9 @@ export default function Home() {
   return (
     <div className="screen center">
       <h1 className="title">⚡ Too Quick To Cheat</h1>
-      <p className="subtitle">Quizzing — your own speed quiz, hosted on your own machine.</p>
+      <p className="subtitle">
+        Host a quiz where the questions come so fast you don't have time to search up the answers.
+      </p>
       {!loading && <p className="subtitle">{user ? `Signed in as ${user.name}` : "Not signed in"}</p>}
       <div className="stack">
         <Link className="btn btn-primary" to="/host">
