@@ -39,7 +39,8 @@ export default function PlayerGame() {
   const [wideNumber, setWideNumber] = useState(false); // number + Go Wide: accept ±1 for half points
   const [sequenceOrder, setSequenceOrder] = useState([]); // array of {text, originalIndex}
   const [wideSkipIndex, setWideSkipIndex] = useState(null); // sequence + Go Wide: one item's position is ignored
-  const [goWidePicks, setGoWidePicks] = useState([]); // array of optionIndex (multiple_choice) or letter (normal)
+  const [goWideMode, setGoWideMode] = useState(false); // MC/Normal + Go Wide: optionally pick 2 for half points instead of 1 for full
+  const [goWidePicks, setGoWidePicks] = useState([]); // array of optionIndex (multiple_choice) or letter (normal), only used once goWideMode is on
   const [myScore, setMyScore] = useState(0);
   const tickRef = useRef(null);
 
@@ -84,6 +85,7 @@ export default function PlayerGame() {
       setWideNumber(false);
       setSequenceOrder([]);
       setWideSkipIndex(null);
+      setGoWideMode(false);
       setGoWidePicks([]);
       setPhase("question");
       setSecondsLeft(b.timeLimitSeconds);
@@ -143,7 +145,10 @@ export default function PlayerGame() {
     });
   }
 
-  const isGoWide = board?.roundType === "go_wide" && (board.type === "multiple_choice" || board.type === "normal");
+  // Whether this question's type even offers the optional 2-pick Go Wide mode
+  // (vs. the player having actually turned it on, which is goWideMode below).
+  const supportsGoWidePicks =
+    board?.roundType === "go_wide" && (board.type === "multiple_choice" || board.type === "normal");
 
   function toggleGoWidePick(value) {
     if (myAnswer) return;
@@ -288,20 +293,29 @@ export default function PlayerGame() {
           )}
 
           <div className="answer-area">
-            {isGoWide && phase === "question" && !myAnswer && (
-              <p className="subtitle center-text">Pick 2 answers ({goWidePicks.length}/2 picked)</p>
+            {supportsGoWidePicks && phase === "question" && !myAnswer && (
+              <button
+                type="button"
+                className={`btn go-wide-toggle ${goWideMode ? "active" : ""}`}
+                onClick={() => {
+                  setGoWideMode((w) => !w);
+                  setGoWidePicks([]);
+                }}
+              >
+                🎯 Go Wide — pick 2, half points{goWideMode ? ` (${goWidePicks.length}/2 picked)` : ""}
+              </button>
             )}
 
             {board.type === "multiple_choice" ? (
               <div className="answer-list">
                 {board.options.map((opt, i) => (
                   <button
-                    className={`answer-row ${phase === "question" && isGoWide && goWidePicks.includes(i) ? "picked" : ""} ${
+                    className={`answer-row ${phase === "question" && goWideMode && goWidePicks.includes(i) ? "picked" : ""} ${
                       isGivenValue(i) ? "chosen" : ""
                     } ${phase === "reveal" && i === reveal.correctIndex ? "correct" : ""}`}
                     key={i}
                     disabled={phase === "reveal" || !!myAnswer}
-                    onClick={() => !myAnswer && (isGoWide ? toggleGoWidePick(i) : submitResponse({ optionIndex: i }))}
+                    onClick={() => !myAnswer && (goWideMode ? toggleGoWidePick(i) : submitResponse({ optionIndex: i }))}
                   >
                     <span className="option-label" style={{ background: OPTION_COLORS[i % OPTION_COLORS.length] }}>
                       {OPTION_LABELS[i]}
@@ -319,12 +333,12 @@ export default function PlayerGame() {
                   return (
                     <button
                       className={`letter-btn ${
-                        phase === "question" && isGoWide && letters.some((l) => goWidePicks.includes(l)) ? "picked" : ""
+                        phase === "question" && goWideMode && letters.some((l) => goWidePicks.includes(l)) ? "picked" : ""
                       } ${isChosen ? "chosen" : ""} ${isCorrectTile ? "correct" : ""}`}
                       key={tile}
                       disabled={phase === "reveal" || !!myAnswer}
                       onClick={() =>
-                        !myAnswer && (isGoWide ? toggleGoWidePick(letters[0]) : submitResponse({ letter: letters[0] }))
+                        !myAnswer && (goWideMode ? toggleGoWidePick(letters[0]) : submitResponse({ letter: letters[0] }))
                       }
                     >
                       {tile}

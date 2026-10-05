@@ -30,7 +30,7 @@ export const ROUND_TYPES = {
   go_wide: {
     label: "Go Wide",
     description:
-      "Half the points (including any speed bonus), for a wider shot at being correct: pick 2 answers (Multiple Choice/Normal), accept ±1 (Number), or mark one wildcard item whose position doesn't count (Sequence).",
+      "Optional, per answer: take half the points (including any speed bonus) for a wider shot at being correct — pick 2 answers instead of 1 (Multiple Choice/Normal), accept ±1 (Number), or mark one wildcard item whose position doesn't count (Sequence). Answer normally (1 pick, exact number, no wildcard) and it scores full points same as any other round.",
   },
 };
 
@@ -333,21 +333,20 @@ export function submitAnswer(room, socketId, response) {
   const roundType = room.round.roundType;
   const elapsedMs = Date.now() - room.questionStartedAt;
   const goWideRound = roundType === "go_wide";
-  // Multiple choice/normal force the always-pick-2 mechanic whenever the round
-  // is Go Wide. Number/sequence instead offer it as a per-answer opt-in (see
-  // `usedGoWide` below) — picked up from `response.wide`/`response.wideSkipIndex`.
-  const goWide = goWideRound && (q.type === "multiple_choice" || q.type === "normal");
 
   let isCorrect = false;
   let given;
   let usedGoWide = false;
 
+  // Go Wide is always a per-answer opt-in, never forced: a player can submit
+  // one pick for full points same as any other round, or choose to widen
+  // their shot (2 picks for MC/Normal, +-1 for Number, a wildcard item for
+  // Sequence) for half points instead. Which one happened is read from the
+  // shape of `response` the client actually sent, not just the round type.
   if (q.type === "normal") {
     const correctGroup = letterGroup(computeAnswerLetter(q.answerText));
-    if (goWide) {
-      const letters = Array.isArray(response?.letters)
-        ? response.letters.slice(0, 2).map((l) => (l || "").toUpperCase())
-        : [];
+    if (goWideRound && Array.isArray(response?.letters)) {
+      const letters = response.letters.slice(0, 2).map((l) => (l || "").toUpperCase());
       given = letters;
       isCorrect = letters.some((l) => l && letterGroup(l) === correctGroup);
       usedGoWide = true;
@@ -371,8 +370,8 @@ export function submitAnswer(room, socketId, response) {
       goWideRound && Number.isInteger(response?.wideSkipIndex) ? response.wideSkipIndex : null;
     usedGoWide = wideSkipIndex != null;
     isCorrect = arraysEqualIgnoring(given, correctOrder, wideSkipIndex);
-  } else if (goWide) {
-    const picks = Array.isArray(response?.optionIndices) ? response.optionIndices.slice(0, 2) : [];
+  } else if (goWideRound && Array.isArray(response?.optionIndices)) {
+    const picks = response.optionIndices.slice(0, 2);
     given = picks;
     isCorrect = picks.includes(q.correctIndex);
     usedGoWide = true;

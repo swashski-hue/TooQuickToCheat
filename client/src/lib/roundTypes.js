@@ -9,7 +9,7 @@ export const ROUND_TYPE_HINTS = {
   standard: "5 points for a correct answer, plus a speed bonus for the top 5 fastest.",
   evil: "A wrong answer costs 5 points. Skipping is safe. Correct still gets the speed bonus.",
   go_wide:
-    "Half points for a wider shot: pick 2 (Multiple Choice/Normal), accept ±1 (Number), or mark a wildcard item (Sequence).",
+    "Optional per answer: half points for a wider shot (pick 2 for MC/Normal, ±1 for Number, a wildcard item for Sequence) — or just answer normally for full points.",
   speed: "5 points for any correct answer — the single fastest correct answer gets a bonus 5 on top.",
 };
 
