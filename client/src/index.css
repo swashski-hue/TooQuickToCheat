@@ -908,6 +908,69 @@ body {
   line-height: 1.3;
 }
 
+/* ---- Fastest-correct-answer emoji splash (presentation screen) ---- */
+
+.emoji-splash {
+  position: relative;
+  width: 1px;
+  height: 0;
+  margin: 0 auto;
+}
+
+.emoji-splash-particle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-size: 2.2rem;
+  opacity: 0;
+  animation: emoji-splash-burst 0.9s ease-out forwards;
+}
+
+@keyframes emoji-splash-burst {
+  0% {
+    transform: rotate(var(--angle)) translateX(0) rotate(calc(-1 * var(--angle)));
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(var(--angle)) translateX(var(--distance)) rotate(calc(-1 * var(--angle)));
+    opacity: 0;
+  }
+}
+
+.emoji-splash-banner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--yellow);
+  color: var(--bg);
+  font-weight: 800;
+  font-size: 1.8rem;
+  padding: 16px 32px;
+  border-radius: 20px;
+  margin-bottom: 20px;
+  animation: emoji-splash-pop 0.4s ease-out;
+}
+
+.emoji-splash-emoji {
+  font-size: 2.6rem;
+}
+
+@keyframes emoji-splash-pop {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 .present-join-url {
   font-size: 1.8rem;
   font-weight: 600;
@@ -1107,6 +1170,28 @@ body {
   .present-options {
     grid-template-columns: 1fr;
   }
+}
+
+/* ---- Emoji picker (used when joining a game) ---- */
+
+.emoji-picker {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.emoji-picker-option {
+  font-size: 1.6rem;
+  padding: 10px 0;
+  border-radius: 10px;
+  border: 2px solid var(--surface-2);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.emoji-picker-option.selected {
+  border-color: var(--yellow);
+  background: var(--surface-2);
 }
 
 /* ---- Round picker (used for round 1 and every round after) ---- */
@@ -1408,6 +1493,39 @@ body {
 .letter-btn.picked {
   border-color: var(--yellow);
   background: var(--surface-2);
+}
+
+/* ---- Player answer feedback: my locked-in pick (white), the correct one at reveal (green) ---- */
+
+.answer-row.chosen,
+.letter-btn.chosen {
+  border-color: var(--text);
+  background: var(--text);
+  color: var(--bg);
+}
+
+.answer-row.chosen .option-text {
+  color: var(--bg);
+}
+
+.answer-row.correct,
+.letter-btn.correct,
+.keypad-display.correct,
+.sequence-chip.correct {
+  border-color: var(--correct);
+  background: var(--correct);
+  color: white;
+}
+
+.answer-row.correct .option-text {
+  color: white;
+}
+
+.answer-row:disabled,
+.letter-btn:disabled,
+.keypad-btn:disabled {
+  cursor: default;
+  opacity: 1;
 }
 
 /* ---- Round editor (quiz builder) two-pane layout ---- */

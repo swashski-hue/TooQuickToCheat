@@ -26,8 +26,8 @@ export default function PlayerGame() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [phase, setPhase] = useState("lobby"); // lobby | picture | question | reveal | leaderboard | ended
-  const [picture, setPicture] = useState(null);
+  const [phase, setPhase] = useState("lobby"); // lobby | intro | question | reveal | leaderboard | ended
+  const [intro, setIntro] = useState(null);
   const [board, setBoard] = useState(null);
   const [myAnswer, setMyAnswer] = useState(null); // { given, isCorrect, points, rank }
   const [reveal, setReveal] = useState(null);
@@ -66,13 +66,13 @@ export default function PlayerGame() {
     else socket.connect();
     socket.on("connect", resume);
 
-    socket.on("game:picture", (data) => {
-      setPicture(data);
+    socket.on("game:questionIntro", (data) => {
+      setIntro(data);
       setBoard(null);
       setMyAnswer(null);
       setReveal(null);
       setQuestionExpanded(false);
-      setPhase("picture");
+      setPhase("intro");
     });
 
     socket.on("game:answerBoard", (b) => {
@@ -92,6 +92,7 @@ export default function PlayerGame() {
     socket.on("game:reveal", (data) => {
       setReveal(data);
       setPhase("reveal");
+      setSecondsLeft(0);
     });
 
     socket.on("game:leaderboard", ({ standings, hasMore }) => {
@@ -116,7 +117,7 @@ export default function PlayerGame() {
 
     return () => {
       socket.off("connect", resume);
-      socket.off("game:picture");
+      socket.off("game:questionIntro");
       socket.off("game:answerBoard");
       socket.off("game:reveal");
       socket.off("game:leaderboard");
@@ -194,9 +195,29 @@ export default function PlayerGame() {
 
   const myStanding = standings.find((p) => p.name === myName);
   const myRank = standings.findIndex((p) => p.name === myName) + 1;
-  const pictureUrl = picture?.pictureUrl || board?.pictureUrl;
-  const questionText = picture?.text || board?.text;
+  const pictureUrl = intro?.pictureUrl || board?.pictureUrl;
+  const questionText = intro?.text || board?.text;
   const roundBadge = board?.roundType && board.roundType !== "standard" ? ROUND_TYPE_LABELS[board.roundType] : null;
+
+  // Was `value` part of what I actually submitted? (single value or, for a
+  // Go Wide 2-pick, one of the two.) Used to highlight my own locked-in pick.
+  function isGivenValue(value) {
+    if (!myAnswer) return false;
+    return Array.isArray(myAnswer.given) ? myAnswer.given.includes(value) : myAnswer.given === value;
+  }
+
+  const correctAnswerText =
+    phase === "reveal" && reveal
+      ? reveal.type === "multiple_choice"
+        ? board.options[reveal.correctIndex]
+        : reveal.type === "normal"
+          ? reveal.answerText
+          : reveal.type === "number"
+            ? String(reveal.correctNumber)
+            : reveal.type === "sequence"
+              ? reveal.correctOrder.map((i) => board.items.find((it) => it.originalIndex === i)?.text).join(" → ")
+              : ""
+      : null;
 
   return (
     <div className="player-screen">
@@ -208,19 +229,19 @@ export default function PlayerGame() {
         </div>
       )}
 
-      {phase === "picture" && picture && (
+      {phase === "intro" && intro && (
         <div className="screen center">
           {pictureUrl && (
             <div className="picture-display">
               <img src={`${SERVER_URL}${pictureUrl}`} alt="" />
             </div>
           )}
-          <h2 className="question-text">{picture.text}</h2>
+          <h2 className="question-text">{intro.text}</h2>
           <p className="subtitle">Get ready — the answer board is coming up...</p>
         </div>
       )}
 
-      {phase === "question" && board && (
+      {(phase === "question" || phase === "reveal") && board && (
         <>
           <div className="top-bar">
             <span className="top-bar-score">{myScore} pts</span>
@@ -246,23 +267,41 @@ export default function PlayerGame() {
                 <img src={`${SERVER_URL}${pictureUrl}`} alt="" />
               </div>
             )}
-            <p className={questionExpanded ? "question-text" : "question-text clamped"}>{questionText}</p>
+            <p className={questionExpanded ? "question-text" : "question-text clamped"}>
+              {phase === "reveal" ? correctAnswerText : questionText}
+            </p>
             <span className="question-hint">{questionExpanded ? "Tap to collapse" : "Tap question to see more..."}</span>
           </button>
 
+          {phase === "reveal" && (
+            <p className={`subtitle center-text ${myAnswer?.isCorrect ? "correct-text" : "wrong-text"}`}>
+              {myAnswer
+                ? myAnswer.isCorrect
+                  ? `Correct! +${myAnswer.points} points${
+                      myAnswer.rank && myAnswer.rank <= 5 ? ` — ${ordinal(myAnswer.rank)} fastest!` : ""
+                    }`
+                  : myAnswer.points !== 0
+                    ? `${myAnswer.points} points`
+                    : "Not quite"
+                : "Time's up!"}
+            </p>
+          )}
+
           <div className="answer-area">
-            {isGoWide && !myAnswer && (
+            {isGoWide && phase === "question" && !myAnswer && (
               <p className="subtitle center-text">Pick 2 answers ({goWidePicks.length}/2 picked)</p>
             )}
-            {myAnswer ? (
-              <p className="subtitle center-text">Answer locked in. Waiting for others...</p>
-            ) : board.type === "multiple_choice" ? (
+
+            {board.type === "multiple_choice" ? (
               <div className="answer-list">
                 {board.options.map((opt, i) => (
                   <button
-                    className={`answer-row ${isGoWide && goWidePicks.includes(i) ? "picked" : ""}`}
+                    className={`answer-row ${phase === "question" && isGoWide && goWidePicks.includes(i) ? "picked" : ""} ${
+                      isGivenValue(i) ? "chosen" : ""
+                    } ${phase === "reveal" && i === reveal.correctIndex ? "correct" : ""}`}
                     key={i}
-                    onClick={() => (isGoWide ? toggleGoWidePick(i) : submitResponse({ optionIndex: i }))}
+                    disabled={phase === "reveal" || !!myAnswer}
+                    onClick={() => !myAnswer && (isGoWide ? toggleGoWidePick(i) : submitResponse({ optionIndex: i }))}
                   >
                     <span className="option-label" style={{ background: OPTION_COLORS[i % OPTION_COLORS.length] }}>
                       {OPTION_LABELS[i]}
@@ -274,12 +313,19 @@ export default function PlayerGame() {
             ) : board.type === "normal" ? (
               <div className="letter-grid">
                 {LETTER_TILES.map((tile) => {
-                  const letter = tileLetters(tile)[0];
+                  const letters = tileLetters(tile);
+                  const isChosen = letters.some((l) => isGivenValue(l));
+                  const isCorrectTile = phase === "reveal" && letters.includes(reveal.correctLetter);
                   return (
                     <button
-                      className={`letter-btn ${isGoWide && goWidePicks.includes(letter) ? "picked" : ""}`}
+                      className={`letter-btn ${
+                        phase === "question" && isGoWide && letters.some((l) => goWidePicks.includes(l)) ? "picked" : ""
+                      } ${isChosen ? "chosen" : ""} ${isCorrectTile ? "correct" : ""}`}
                       key={tile}
-                      onClick={() => (isGoWide ? toggleGoWidePick(letter) : submitResponse({ letter }))}
+                      disabled={phase === "reveal" || !!myAnswer}
+                      onClick={() =>
+                        !myAnswer && (isGoWide ? toggleGoWidePick(letters[0]) : submitResponse({ letter: letters[0] }))
+                      }
                     >
                       {tile}
                     </button>
@@ -287,123 +333,110 @@ export default function PlayerGame() {
                 })}
               </div>
             ) : board.type === "number" ? (
-              <div className="keypad-wrap">
-                {board.roundType === "go_wide" && (
-                  <button
-                    type="button"
-                    className={`btn go-wide-toggle ${wideNumber ? "active" : ""}`}
-                    onClick={() => setWideNumber((w) => !w)}
-                  >
-                    🎯 Go Wide (±1, half points){wideNumber ? " — ON" : ""}
-                  </button>
-                )}
-                <div className="keypad-display">{numberInput || "Enter your answer"}</div>
-                <div className="keypad-grid">
-                  {KEYPAD_ROWS.flat().map((key) => (
+              myAnswer && phase === "question" ? (
+                <p className="subtitle center-text">Answer locked in. Waiting for others...</p>
+              ) : (
+                <div className="keypad-wrap">
+                  {phase === "question" && board.roundType === "go_wide" && (
                     <button
-                      key={key}
-                      className={`keypad-btn ${key === "enter" ? "keypad-enter" : ""} ${key === "C" ? "keypad-clear" : ""}`}
-                      onClick={() => pressDigit(key)}
-                      disabled={key === "enter" && numberInput === ""}
+                      type="button"
+                      className={`btn go-wide-toggle ${wideNumber ? "active" : ""}`}
+                      onClick={() => setWideNumber((w) => !w)}
                     >
-                      {key === "enter" ? "Enter" : key}
+                      🎯 Go Wide (±1, half points){wideNumber ? " — ON" : ""}
                     </button>
-                  ))}
+                  )}
+                  <div className={`keypad-display ${phase === "reveal" ? "correct" : ""}`}>
+                    {phase === "reveal" ? reveal.correctNumber : numberInput || "Enter your answer"}
+                  </div>
+                  <div className="keypad-grid">
+                    {KEYPAD_ROWS.flat().map((key) => (
+                      <button
+                        key={key}
+                        className={`keypad-btn ${key === "enter" ? "keypad-enter" : ""} ${key === "C" ? "keypad-clear" : ""}`}
+                        onClick={() => pressDigit(key)}
+                        disabled={phase === "reveal" || (key === "enter" && numberInput === "")}
+                      >
+                        {key === "enter" ? "Enter" : key}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )
             ) : board.type === "sequence" ? (
-              <div className="sequence-wrap">
-                <p className="subtitle">Tap items in the correct order:</p>
-                {board.roundType === "go_wide" && (
-                  <p className="subtitle">
-                    Tap ⚡ on one item to make it a wildcard — its position won't count against you (half points).
-                  </p>
-                )}
-                <div className="sequence-chosen">
-                  {sequenceOrder.length === 0 && <p className="subtitle">Nothing picked yet</p>}
-                  {sequenceOrder.map((item, i) => (
-                    <div className="sequence-chip-row" key={item.originalIndex}>
-                      <button className="sequence-chip" onClick={() => undoSequenceItem(i)}>
-                        <span className="sequence-chip-num">{i + 1}</span> {item.text} ✕
-                      </button>
-                      {board.roundType === "go_wide" && (
-                        <button
-                          type="button"
-                          className={`btn btn-small go-wide-wildcard-btn ${wideSkipIndex === item.originalIndex ? "active" : ""}`}
-                          onClick={() => toggleWildcard(item.originalIndex)}
-                        >
-                          ⚡
-                        </button>
-                      )}
-                    </div>
-                  ))}
+              myAnswer && phase === "question" ? (
+                <p className="subtitle center-text">Answer locked in. Waiting for others...</p>
+              ) : phase === "reveal" ? (
+                <div className="sequence-wrap">
+                  <p className="subtitle">Correct order:</p>
+                  <div className="sequence-chosen">
+                    {reveal.correctOrder.map((originalIndex, i) => (
+                      <div className="sequence-chip-row" key={originalIndex}>
+                        <span className="sequence-chip correct">
+                          <span className="sequence-chip-num">{i + 1}</span>{" "}
+                          {board.items.find((it) => it.originalIndex === originalIndex)?.text}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="sequence-pool">
-                  {sequencePool.map((item) => (
-                    <div className="sequence-pool-item" key={item.originalIndex}>
-                      <button className="btn answer-btn" onClick={() => pickSequenceItem(item)}>
-                        {item.text}
-                      </button>
-                      {board.roundType === "go_wide" && (
-                        <button
-                          type="button"
-                          className={`btn btn-small go-wide-wildcard-btn ${wideSkipIndex === item.originalIndex ? "active" : ""}`}
-                          onClick={() => toggleWildcard(item.originalIndex)}
-                        >
-                          ⚡
+              ) : (
+                <div className="sequence-wrap">
+                  <p className="subtitle">Tap items in the correct order:</p>
+                  {board.roundType === "go_wide" && (
+                    <p className="subtitle">
+                      Tap ⚡ on one item to make it a wildcard — its position won't count against you (half points).
+                    </p>
+                  )}
+                  <div className="sequence-chosen">
+                    {sequenceOrder.length === 0 && <p className="subtitle">Nothing picked yet</p>}
+                    {sequenceOrder.map((item, i) => (
+                      <div className="sequence-chip-row" key={item.originalIndex}>
+                        <button className="sequence-chip" onClick={() => undoSequenceItem(i)}>
+                          <span className="sequence-chip-num">{i + 1}</span> {item.text} ✕
                         </button>
-                      )}
-                    </div>
-                  ))}
+                        {board.roundType === "go_wide" && (
+                          <button
+                            type="button"
+                            className={`btn btn-small go-wide-wildcard-btn ${wideSkipIndex === item.originalIndex ? "active" : ""}`}
+                            onClick={() => toggleWildcard(item.originalIndex)}
+                          >
+                            ⚡
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="sequence-pool">
+                    {sequencePool.map((item) => (
+                      <div className="sequence-pool-item" key={item.originalIndex}>
+                        <button className="btn answer-btn" onClick={() => pickSequenceItem(item)}>
+                          {item.text}
+                        </button>
+                        {board.roundType === "go_wide" && (
+                          <button
+                            type="button"
+                            className={`btn btn-small go-wide-wildcard-btn ${wideSkipIndex === item.originalIndex ? "active" : ""}`}
+                            onClick={() => toggleWildcard(item.originalIndex)}
+                          >
+                            ⚡
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    className="btn btn-primary btn-large"
+                    onClick={submitSequence}
+                    disabled={sequenceOrder.length !== board.items.length}
+                  >
+                    Submit order
+                  </button>
                 </div>
-                <button
-                  className="btn btn-primary btn-large"
-                  onClick={submitSequence}
-                  disabled={sequenceOrder.length !== board.items.length}
-                >
-                  Submit order
-                </button>
-              </div>
+              )
             ) : null}
           </div>
         </>
-      )}
-
-      {phase === "reveal" && reveal && board && (
-        <div className="screen center">
-          {myAnswer ? (
-            myAnswer.isCorrect ? (
-              <>
-                <h1 className="title correct-text">Correct! 🎉</h1>
-                <p className="subtitle">
-                  +{myAnswer.points} points
-                  {myAnswer.rank && myAnswer.rank <= 5 && ` — ${ordinal(myAnswer.rank)} fastest!`}
-                </p>
-              </>
-            ) : (
-              <>
-                <h1 className="title wrong-text">Not quite</h1>
-                {myAnswer.points !== 0 && <p className="subtitle wrong-text">{myAnswer.points} points</p>}
-              </>
-            )
-          ) : (
-            <h1 className="title wrong-text">Time's up!</h1>
-          )}
-          {reveal.type === "multiple_choice" && (
-            <p className="subtitle">
-              Correct answer: {OPTION_LABELS[reveal.correctIndex]}. {board.options[reveal.correctIndex]}
-            </p>
-          )}
-          {reveal.type === "normal" && (
-            <p className="subtitle">
-              Correct answer: {reveal.correctLetter} — {reveal.answerText}
-            </p>
-          )}
-          {reveal.type === "number" && <p className="subtitle">Correct answer: {reveal.correctNumber}</p>}
-          {reveal.type === "sequence" && (
-            <p className="subtitle">Correct order: {reveal.correctOrder.join(" → ")}</p>
-          )}
-        </div>
       )}
 
       {phase === "leaderboard" && (
@@ -417,7 +450,7 @@ export default function PlayerGame() {
           <ol className="leaderboard">
             {standings.slice(0, 5).map((p, i) => (
               <li key={p.id} className={p.name === myName ? "me" : ""}>
-                <span className="rank">#{i + 1}</span> {p.name} <span className="score">{p.score}</span>
+                <span className="rank">#{i + 1}</span> {p.emoji} {p.name} <span className="score">{p.score}</span>
               </li>
             ))}
           </ol>
@@ -438,7 +471,7 @@ export default function PlayerGame() {
           <ol className="leaderboard">
             {standings.map((p, i) => (
               <li key={p.id} className={p.name === myName ? "me" : ""}>
-                <span className="rank">#{i + 1}</span> {p.name} <span className="score">{p.score}</span>
+                <span className="rank">#{i + 1}</span> {p.emoji} {p.name} <span className="score">{p.score}</span>
               </li>
             ))}
           </ol>

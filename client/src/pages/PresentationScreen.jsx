@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { socket } from "../lib/socket.js";
 import { SERVER_URL } from "../lib/api.js";
@@ -11,8 +11,8 @@ export default function PresentationScreen() {
   const [joinError, setJoinError] = useState("");
   const [roundName, setRoundName] = useState("");
   const [players, setPlayers] = useState([]);
-  const [phase, setPhase] = useState("lobby"); // lobby | picture | question | reveal | leaderboard | ended
-  const [picture, setPicture] = useState(null);
+  const [phase, setPhase] = useState("lobby"); // lobby | intro | question | reveal | leaderboard | ended
+  const [intro, setIntro] = useState(null);
   const [board, setBoard] = useState(null);
   const [answerCount, setAnswerCount] = useState({ answered: 0, total: 0 });
   const [reveal, setReveal] = useState(null);
@@ -33,12 +33,12 @@ export default function PresentationScreen() {
 
     socket.on("game:roundSelected", (data) => setRoundName(data.roundName));
 
-    socket.on("game:picture", (data) => {
-      setPicture(data);
+    socket.on("game:questionIntro", (data) => {
+      setIntro(data);
       setBoard(null);
       setReveal(null);
       setAnswerCount({ answered: 0, total: 0 });
-      setPhase("picture");
+      setPhase("intro");
     });
 
     socket.on("game:answerBoard", (b) => {
@@ -72,7 +72,7 @@ export default function PresentationScreen() {
     return () => {
       socket.off("room:players");
       socket.off("game:roundSelected");
-      socket.off("game:picture");
+      socket.off("game:questionIntro");
       socket.off("game:answerBoard");
       socket.off("game:answerCount");
       socket.off("game:reveal");
@@ -101,7 +101,7 @@ export default function PresentationScreen() {
     );
   }
 
-  const pictureUrl = picture?.pictureUrl || board?.pictureUrl;
+  const pictureUrl = intro?.pictureUrl || board?.pictureUrl;
 
   const correctResults = reveal ? reveal.results.filter((r) => r.answer?.isCorrect) : [];
   const fastest = [...correctResults].sort((a, b) => {
@@ -110,6 +110,20 @@ export default function PresentationScreen() {
     if (ra !== rb) return ra - rb;
     return a.answer.elapsedMs - b.answer.elapsedMs;
   });
+  const fastestPlayer = fastest[0] || null;
+
+  // Random burst directions for the fastest-player emoji splash — memoized so
+  // they don't re-randomize on every re-render, only when a new one is revealed.
+  const splashParticles = useMemo(() => {
+    if (!fastestPlayer) return [];
+    return Array.from({ length: 12 }, (_, i) => ({
+      id: i,
+      angle: (360 / 12) * i + (Math.random() * 16 - 8),
+      distance: 100 + Math.random() * 80,
+      delay: Math.random() * 0.15,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fastestPlayer?.id, board?.index]);
 
   return (
     <div className="presentation-screen">
@@ -125,7 +139,7 @@ export default function PresentationScreen() {
           <div className="present-chip-list">
             {players.map((p) => (
               <span className={`chip ${p.online === false ? "chip-offline" : ""}`} key={p.id}>
-                {p.name}
+                {p.emoji} {p.name}
                 {p.online === false && " (away)"}
               </span>
             ))}
@@ -133,17 +147,17 @@ export default function PresentationScreen() {
         </div>
       )}
 
-      {phase === "picture" && picture && (
+      {phase === "intro" && intro && (
         <div className="present-center">
           <p className="present-progress">
-            Q{picture.index + 1} / {picture.total}
+            Q{intro.index + 1} / {intro.total}
           </p>
           {pictureUrl && (
             <div className="picture-display present-picture">
               <img src={`${SERVER_URL}${pictureUrl}`} alt="" />
             </div>
           )}
-          <h1 className="present-question">{picture.text}</h1>
+          <h1 className="present-question">{intro.text}</h1>
         </div>
       )}
 
@@ -195,6 +209,23 @@ export default function PresentationScreen() {
 
       {phase === "reveal" && reveal && board && (
         <div className="present-center">
+          {fastestPlayer && (
+            <div className="emoji-splash" key={`${board.index}-${fastestPlayer.id}`}>
+              {splashParticles.map((p) => (
+                <span
+                  key={p.id}
+                  className="emoji-splash-particle"
+                  style={{ "--angle": `${p.angle}deg`, "--distance": `${p.distance}px`, animationDelay: `${p.delay}s` }}
+                >
+                  {fastestPlayer.emoji}
+                </span>
+              ))}
+              <div className="emoji-splash-banner">
+                <span className="emoji-splash-emoji">{fastestPlayer.emoji}</span>
+                ⚡ {fastestPlayer.name} was fastest!
+              </div>
+            </div>
+          )}
           {reveal.fastTrackEvent && (
             <div className="present-fast-track-banner">
               ⚡ FAST TRACKED! ⚡
@@ -244,7 +275,7 @@ export default function PresentationScreen() {
                 <ol className="present-fastest-list">
                   {fastest.slice(0, 5).map((r) => (
                     <li key={r.id}>
-                      {r.name} <span className="present-fastest-points">+{r.answer.points}</span>
+                      {r.emoji} {r.name} <span className="present-fastest-points">+{r.answer.points}</span>
                     </li>
                   ))}
                 </ol>
@@ -260,7 +291,7 @@ export default function PresentationScreen() {
           <ol className="present-leaderboard">
             {standings.map((p, i) => (
               <li key={p.id} className={i < 3 ? `podium podium-${i + 1}` : ""}>
-                <span className="rank">#{i + 1}</span> {p.name} <span className="score">{p.score}</span>
+                <span className="rank">#{i + 1}</span> {p.emoji} {p.name} <span className="score">{p.score}</span>
               </li>
             ))}
           </ol>

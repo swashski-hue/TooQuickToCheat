@@ -182,6 +182,10 @@ app.get("/api/round-types", (req, res) => {
   res.json(game.ROUND_TYPES);
 });
 
+app.get("/api/player-emojis", (req, res) => {
+  res.json(game.PLAYER_EMOJIS);
+});
+
 // ---- Image upload (for the picture question modifier) ----
 app.post("/api/uploads", requireAuth, (req, res) => {
   const { dataUrl } = req.body || {};
@@ -366,19 +370,17 @@ io.on("connection", (socket) => {
     const q = game.advanceToNextQuestion(room);
     if (!q) return ack?.({ ok: false, error: "This round has no questions" });
 
-    if (room.state === "picture") {
-      io.to(room.code).emit("game:picture", game.picturePayload(room));
-      return ack?.({ ok: true, phase: "picture" });
-    }
-
-    doRevealBoard(room);
-    ack?.({ ok: true, phase: "question" });
+    // Every question starts in "intro" — players see the question (and picture,
+    // if any) but no answer board or timer until the host explicitly reveals it
+    // via "host:revealBoard", at their own pace.
+    io.to(room.code).emit("game:questionIntro", game.questionIntroPayload(room));
+    ack?.({ ok: true, phase: "intro" });
   });
 
   socket.on("host:revealBoard", ({ code }, ack) => {
     const room = game.getRoom(code);
     if (!room || room.hostSocketId !== socket.id) return ack?.({ ok: false, error: "Not authorized" });
-    if (room.state !== "picture") return ack?.({ ok: false, error: "Not in picture phase" });
+    if (room.state !== "intro") return ack?.({ ok: false, error: "Not in intro phase" });
     doRevealBoard(room);
     ack?.({ ok: true });
   });
@@ -415,13 +417,13 @@ io.on("connection", (socket) => {
   });
 
   // ----- Player events -----
-  socket.on("player:join", ({ code, name }, ack) => {
+  socket.on("player:join", ({ code, name, emoji }, ack) => {
     const room = game.getRoom(code);
     if (!room) return ack?.({ ok: false, error: "Room not found" });
     if (!name || !name.trim()) return ack?.({ ok: false, error: "Name required" });
     if (room.state !== "lobby") return ack?.({ ok: false, error: "Game already started" });
 
-    game.addPlayer(room, socket.id, name.trim());
+    game.addPlayer(room, socket.id, name.trim(), emoji);
     socket.join(room.code);
     socket.data.role = "player";
     socket.data.roomCode = room.code;
@@ -474,10 +476,6 @@ io.on("connection", (socket) => {
       answered: Array.from(room.players.values()).filter((p) => p.lastAnswer !== null).length,
       total: room.players.size,
     });
-
-    if (game.allPlayersAnswered(room)) {
-      doReveal(room);
-    }
   });
 
   socket.on("disconnect", () => {

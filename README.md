@@ -22,7 +22,7 @@ Rounds aren't planned out in advance as one fixed quiz — you build up a shared
 ## Hosting and playing a game
 
 1. Go to **https://2quick2cheat.com** → **Sign in** (see **Accounts & access** below) → **Host a quiz** → **Start New Game**. Note the room code shown.
-2. Players, from anywhere (not restricted to your Wi-Fi), open **https://2quick2cheat.com/join** — or just the homepage → **Join a quiz** — and enter the room code and a name. No account needed to join.
+2. Players, from anywhere (not restricted to your Wi-Fi), open **https://2quick2cheat.com/join** — or just the homepage → **Join a quiz** — and enter the room code, a name, and pick an emoji to represent them. No account needed to join.
 3. While players are joining, use **+ Add round** on the Quiz Master screen to build up your running order — pick a round from the bank and a round type for each. Reorder or remove entries with the ↑/↓/✕ buttons any time.
 4. Click **Start Quiz** once you've got at least one round queued and one player joined. The running order stays open the whole game — keep adding, removing, or reordering upcoming rounds even while a question is live; only the round actually being played is locked in.
 5. After a round's last question, click **Start Next Round** to pop the next queued round, or add one first if the queue's empty — or end the quiz.
@@ -48,7 +48,11 @@ When adding a round to the running order, the picker shows you the round's full 
 - **Normal** — the answer board is the alphabet, laid out as a 4×6 grid of tiles (U/V and Y/Z share a tile, so all 26 letters fit). Players press the letter the answer *starts with*. A leading "The" is ignored, so "The Beatles" → **B**, "Paris" → **P**. Pressing the merged U/V or Y/Z tile counts as either letter.
 - **Number** — players type a numeric answer on a number pad (0–9, **C** to clear, **Enter** to submit). In a Go Wide round, an optional "Go Wide (±1)" toggle above the keypad also accepts the number 1 above or below the exact answer, for half points.
 - **Sequence** — the round-builder sets 3–6 items in the correct order (e.g. "smallest to largest", "put these lyrics in order"). Players see the items shuffled and tap them in the order they believe is correct; the whole sequence must match to be correct. In a Go Wide round, players can tap ⚡ on one item (in the pool or already placed) to mark it a wildcard — that item's position is ignored when checking the order, as long as everything else is still correctly ordered relative to each other — for half points.
-- **Picture modifier** — any question (any type above) can have a picture attached. When a question has a picture, the host screen shows it first with a **Reveal Answer Board** button; players see the picture and wait. Once revealed, the timer starts and the normal answer board appears, with the picture still shown.
+- **Picture modifier** — any question (any type above) can have a picture attached. Players see it in the question itself (see below).
+
+Every question, picture or not, opens with a **question intro**: the host sees it first (with a **Reveal Answer Board & Start Timer** button) and players see just the question text (and picture, if any) — no answer board, no countdown. Nothing starts until the host clicks reveal, so hosts can read the question aloud, talk it up, or just take their time before the clock starts. Once revealed, players also get a collapsible bar at the top of their screen showing the question — tap it to expand the full text or picture at any point during the question. Picking an answer highlights it immediately (white for your own pick, then green for the correct one once it's revealed) — the answer screen itself stays up throughout, it never switches away to a separate result screen. The question timer always runs the full time limit regardless of how quickly everyone answers — it only ends early if the host presses **Reveal now**.
+
+Whoever answers correctly the fastest each question gets a little fanfare on the **Presentation Screen** — their emoji (picked when they joined) bursts across the screen with a "⚡ [Name] was fastest!" callout.
 
 ## Round types
 

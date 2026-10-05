@@ -5,6 +5,15 @@ const RANK_BONUS = [5, 4, 3, 2, 1];
 // A "speed" round gives everyone correct the base score, plus this extra bonus for ONLY the single fastest.
 const SPEED_ROUND_FASTEST_BONUS = 5;
 
+// Curated set a player picks from when joining — kept small and fixed so it's
+// safe to trust without validation beyond "is it one of these".
+export const PLAYER_EMOJIS = [
+  "🦄", "🐸", "🐵", "🦊",
+  "🐼", "🐨", "🦁", "🐯",
+  "🐶", "🐱", "🐹", "🐰",
+  "🦉", "🐙", "🦀", "🤖",
+];
+
 export const ROUND_TYPES = {
   standard: {
     label: "Standard",
@@ -170,10 +179,11 @@ export function selectRound(room, roundData, roundType, fastTrack) {
   for (const p of room.players.values()) p.lastAnswer = null;
 }
 
-export function addPlayer(room, socketId, name) {
+export function addPlayer(room, socketId, name, emoji) {
   room.players.set(socketId, {
     id: socketId,
     name: name.slice(0, 24),
+    emoji: PLAYER_EMOJIS.includes(emoji) ? emoji : PLAYER_EMOJIS[0],
     score: 0,
     lastAnswer: null,
     disconnected: false,
@@ -217,6 +227,7 @@ export function playerList(room) {
   return Array.from(room.players.values()).map((p) => ({
     id: p.id,
     name: p.name,
+    emoji: p.emoji,
     score: p.score,
     online: !p.disconnected,
   }));
@@ -255,11 +266,15 @@ export function advanceToNextQuestion(room) {
     return null;
   }
 
-  room.state = q.pictureUrl ? "picture" : "question-pending";
+  // Every question starts in "intro" — players (and the presentation screen)
+  // see just the question text (plus a picture, if any) with no answer board
+  // and no running timer yet. The host decides when to reveal the board via
+  // revealBoard(), which is what actually starts the clock.
+  room.state = "intro";
   return q;
 }
 
-export function picturePayload(room) {
+export function questionIntroPayload(room) {
   const q = currentQuestion(room);
   if (!q) return null;
   return {
@@ -390,11 +405,6 @@ export function submitAnswer(room, socketId, response) {
   return player.lastAnswer;
 }
 
-export function allPlayersAnswered(room) {
-  if (room.players.size === 0) return false;
-  return Array.from(room.players.values()).every((p) => p.lastAnswer !== null);
-}
-
 /**
  * Fast Track: if everyone who was in the top 3 BEFORE this question got it
  * wrong (or didn't answer), whoever answered correctly the fastest — by
@@ -440,6 +450,7 @@ export function revealAnswer(room) {
     results: Array.from(room.players.values()).map((p) => ({
       id: p.id,
       name: p.name,
+      emoji: p.emoji,
       answer: p.lastAnswer,
       score: p.score,
     })),

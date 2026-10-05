@@ -8,7 +8,7 @@ import RunningOrderPanel from "../components/RunningOrderPanel.jsx";
 
 const PHASE_LABEL = {
   lobby: "Waiting for players",
-  picture: "Showing picture",
+  intro: "Showing question",
   question: "Question live",
   reveal: "Revealing answer",
   leaderboard: "Leaderboard",
@@ -24,7 +24,7 @@ export default function HostRoom() {
   const [currentRound, setCurrentRound] = useState(null); // { name, roundType, questionCount }
   const [queue, setQueue] = useState([]); // the running order — editable any time, until each entry is played
   const [showAddRound, setShowAddRound] = useState(false);
-  const [picture, setPicture] = useState(null); // { pictureUrl, text, index, total }
+  const [intro, setIntro] = useState(null); // { pictureUrl, text, index, total } — shown before the board/timer start
   const [board, setBoard] = useState(null); // answer board payload
   const [answerCount, setAnswerCount] = useState({ answered: 0, total: 0 });
   const [reveal, setReveal] = useState(null);
@@ -55,12 +55,12 @@ export default function HostRoom() {
 
     socket.on("game:roundSelected", (data) => setCurrentRound(data));
 
-    socket.on("game:picture", (data) => {
-      setPicture(data);
+    socket.on("game:questionIntro", (data) => {
+      setIntro(data);
       setBoard(null);
       setReveal(null);
       setAnswerCount({ answered: 0, total: 0 });
-      setPhase("picture");
+      setPhase("intro");
     });
 
     socket.on("game:answerBoard", (b) => {
@@ -96,7 +96,7 @@ export default function HostRoom() {
       socket.off("room:players");
       socket.off("game:queue");
       socket.off("game:roundSelected");
-      socket.off("game:picture");
+      socket.off("game:questionIntro");
       socket.off("game:answerBoard");
       socket.off("game:answerCount");
       socket.off("game:reveal");
@@ -163,7 +163,7 @@ export default function HostRoom() {
     }
   }
 
-  const pictureUrl = picture?.pictureUrl || board?.pictureUrl;
+  const pictureUrl = intro?.pictureUrl || board?.pictureUrl;
   const answeredPct = players.length ? Math.round((100 * answerCount.answered) / players.length) : 0;
   const canStart = queue.length > 0;
 
@@ -206,19 +206,19 @@ export default function HostRoom() {
             </>
           )}
 
-          {phase === "picture" && picture && (
+          {phase === "intro" && intro && (
             <>
               <p className="subtitle">
-                Q{picture.index + 1} / {picture.total}
+                Q{intro.index + 1} / {intro.total}
               </p>
               {pictureUrl && (
                 <div className="picture-display">
                   <img src={`${SERVER_URL}${pictureUrl}`} alt="" />
                 </div>
               )}
-              <h2 className="question-text">{picture.text}</h2>
+              <h2 className="question-text">{intro.text}</h2>
               <button className="btn btn-primary btn-large" onClick={revealBoard}>
-                Reveal Answer Board
+                Reveal Answer Board & Start Timer
               </button>
             </>
           )}
@@ -312,7 +312,7 @@ export default function HostRoom() {
               <ol className="leaderboard">
                 {standings.map((p, i) => (
                   <li key={p.id}>
-                    <span className="rank">#{i + 1}</span> {p.name} <span className="score">{p.score}</span>
+                    <span className="rank">#{i + 1}</span> {p.emoji} {p.name} <span className="score">{p.score}</span>
                   </li>
                 ))}
               </ol>
@@ -328,7 +328,7 @@ export default function HostRoom() {
               <ol className="leaderboard">
                 {standings.map((p, i) => (
                   <li key={p.id}>
-                    <span className="rank">#{i + 1}</span> {p.name} <span className="score">{p.score}</span>
+                    <span className="rank">#{i + 1}</span> {p.emoji} {p.name} <span className="score">{p.score}</span>
                   </li>
                 ))}
               </ol>
@@ -348,7 +348,7 @@ export default function HostRoom() {
               <ol className="leaderboard">
                 {standings.map((p, i) => (
                   <li key={p.id}>
-                    <span className="rank">#{i + 1}</span> {p.name} <span className="score">{p.score}</span>
+                    <span className="rank">#{i + 1}</span> {p.emoji} {p.name} <span className="score">{p.score}</span>
                   </li>
                 ))}
               </ol>
@@ -393,7 +393,7 @@ export default function HostRoom() {
             <div className="player-chip-list">
               {players.map((p) => (
                 <span className={`chip ${p.online === false ? "chip-offline" : ""}`} key={p.id}>
-                  {p.name}
+                  {p.emoji} {p.name}
                   {p.online === false && " (away)"}
                 </span>
               ))}
