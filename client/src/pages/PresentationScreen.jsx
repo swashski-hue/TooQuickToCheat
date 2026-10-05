@@ -19,6 +19,7 @@ export default function PresentationScreen() {
   const [standings, setStandings] = useState([]);
   const [hasMore, setHasMore] = useState(true);
   const [secondsLeft, setSecondsLeft] = useState(0);
+  const [showFastestSplash, setShowFastestSplash] = useState(false);
   const tickRef = useRef(null);
 
   useEffect(() => {
@@ -54,6 +55,7 @@ export default function PresentationScreen() {
     socket.on("game:reveal", (data) => {
       setReveal(data);
       setPhase("reveal");
+      setShowFastestSplash(false);
     });
 
     socket.on("game:leaderboard", ({ standings, hasMore }) => {
@@ -91,6 +93,14 @@ export default function PresentationScreen() {
     tickRef.current = setInterval(() => setSecondsLeft((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(tickRef.current);
   }, [phase]);
+
+  // The correct answer shows immediately on reveal; the fastest-answerer splash
+  // waits 3s so it doesn't cover the answer before everyone's had a look at it.
+  useEffect(() => {
+    if (phase !== "reveal") return;
+    const t = setTimeout(() => setShowFastestSplash(true), 3000);
+    return () => clearTimeout(t);
+  }, [phase, reveal]);
 
   if (joinError) {
     return (
@@ -209,22 +219,24 @@ export default function PresentationScreen() {
 
       {phase === "reveal" && reveal && board && (
         <div className="present-center">
-          {fastestPlayer && (
-            <div className="emoji-splash" key={`${board.index}-${fastestPlayer.id}`}>
-              {splashParticles.map((p) => (
-                <span
-                  key={p.id}
-                  className="emoji-splash-particle"
-                  style={{ "--angle": `${p.angle}deg`, "--distance": `${p.distance}px`, animationDelay: `${p.delay}s` }}
-                >
-                  {fastestPlayer.emoji}
-                </span>
-              ))}
+          {fastestPlayer && showFastestSplash && (
+            <>
+              <div className="emoji-splash-particles" key={`${board.index}-${fastestPlayer.id}`}>
+                {splashParticles.map((p) => (
+                  <span
+                    key={p.id}
+                    className="emoji-splash-particle"
+                    style={{ "--angle": `${p.angle}deg`, "--distance": `${p.distance}px`, animationDelay: `${p.delay}s` }}
+                  >
+                    {fastestPlayer.emoji}
+                  </span>
+                ))}
+              </div>
               <div className="emoji-splash-banner">
                 <span className="emoji-splash-emoji">{fastestPlayer.emoji}</span>
                 ⚡ {fastestPlayer.name} was fastest!
               </div>
-            </div>
+            </>
           )}
           {reveal.fastTrackEvent && (
             <div className="present-fast-track-banner">

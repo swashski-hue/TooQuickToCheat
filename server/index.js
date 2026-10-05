@@ -182,10 +182,6 @@ app.get("/api/round-types", (req, res) => {
   res.json(game.ROUND_TYPES);
 });
 
-app.get("/api/player-emojis", (req, res) => {
-  res.json(game.PLAYER_EMOJIS);
-});
-
 // ---- Image upload (for the picture question modifier) ----
 app.post("/api/uploads", requireAuth, (req, res) => {
   const { dataUrl } = req.body || {};
@@ -242,7 +238,6 @@ function emitLeaderboard(room) {
 function doReveal(room) {
   const reveal = game.revealAnswer(room);
   io.to(room.code).emit("game:reveal", reveal);
-  setTimeout(() => emitLeaderboard(room), 4000);
 }
 
 function doRevealBoard(room) {
@@ -390,6 +385,16 @@ io.on("connection", (socket) => {
     if (!room || room.hostSocketId !== socket.id) return ack?.({ ok: false, error: "Not authorized" });
     if (room.state !== "question") return ack?.({ ok: false, error: "Not in question state" });
     doReveal(room);
+    ack?.({ ok: true });
+  });
+
+  // The scoreboard used to auto-appear 4s after a reveal; now the host decides
+  // when, same pacing model as the question intro/reveal-board steps.
+  socket.on("host:revealScoreboard", ({ code }, ack) => {
+    const room = game.getRoom(code);
+    if (!room || room.hostSocketId !== socket.id) return ack?.({ ok: false, error: "Not authorized" });
+    if (room.state !== "reveal") return ack?.({ ok: false, error: "Not in reveal phase" });
+    emitLeaderboard(room);
     ack?.({ ok: true });
   });
 

@@ -1,25 +1,26 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { socket } from "../lib/socket.js";
-import { getPlayerEmojis } from "../lib/api.js";
 import { savePlayerSession } from "../lib/playerSession.js";
+
+// Mirrors server/gameManager.js's PLAYER_EMOJIS — kept as a plain constant
+// (not fetched) so the picker is always there immediately, with no dependency
+// on a network round-trip succeeding before a player can make a choice.
+const EMOJIS = [
+  "🦄", "🐸", "🐵", "🦊",
+  "🐼", "🐨", "🦁", "🐯",
+  "🐶", "🐱", "🐹", "🐰",
+  "🦉", "🐙", "🦀", "🤖",
+];
 
 export default function PlayerJoin() {
   const { code: codeFromUrl } = useParams();
   const [code, setCode] = useState(codeFromUrl || "");
   const [name, setName] = useState("");
-  const [emojis, setEmojis] = useState([]);
-  const [emoji, setEmoji] = useState("");
+  const [emoji, setEmoji] = useState(EMOJIS[0]);
   const [error, setError] = useState("");
   const [joining, setJoining] = useState(false);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    getPlayerEmojis().then((list) => {
-      setEmojis(list);
-      if (list.length) setEmoji(list[0]);
-    });
-  }, []);
 
   function onJoin(e) {
     e.preventDefault();
@@ -60,23 +61,21 @@ export default function PlayerJoin() {
           <span>Your name</span>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nickname" maxLength={24} />
         </label>
-        {emojis.length > 0 && (
-          <div className="field">
-            <span>Pick an emoji</span>
-            <div className="emoji-picker">
-              {emojis.map((e) => (
-                <button
-                  type="button"
-                  key={e}
-                  className={`emoji-picker-option ${emoji === e ? "selected" : ""}`}
-                  onClick={() => setEmoji(e)}
-                >
-                  {e}
-                </button>
-              ))}
-            </div>
+        <div className="field">
+          <span>Pick an emoji</span>
+          <div className="emoji-picker">
+            {EMOJIS.map((e) => (
+              <button
+                type="button"
+                key={e}
+                className={`emoji-picker-option ${emoji === e ? "selected" : ""}`}
+                onClick={() => setEmoji(e)}
+              >
+                {e}
+              </button>
+            ))}
           </div>
-        )}
+        </div>
         {error && <p className="error">{error}</p>}
         <button className="btn btn-primary btn-large" type="submit" disabled={joining}>
           {joining ? "Joining..." : "Join"}

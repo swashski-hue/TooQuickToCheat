@@ -24,7 +24,6 @@ export const createRound = (data) => request("/api/bank", { method: "POST", body
 export const updateRound = (id, data) => request(`/api/bank/${id}`, { method: "PUT", body: JSON.stringify(data) });
 export const deleteRound = (id) => request(`/api/bank/${id}`, { method: "DELETE" });
 export const getRoundTypes = () => request("/api/round-types");
-export const getPlayerEmojis = () => request("/api/player-emojis");
 
 export const uploadImage = (dataUrl) =>
   request("/api/uploads", { method: "POST", body: JSON.stringify({ dataUrl }) });

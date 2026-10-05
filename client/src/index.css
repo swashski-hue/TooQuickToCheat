@@ -910,7 +910,7 @@ body {
 
 /* ---- Fastest-correct-answer emoji splash (presentation screen) ---- */
 
-.emoji-splash {
+.emoji-splash-particles {
   position: relative;
   width: 1px;
   height: 0;

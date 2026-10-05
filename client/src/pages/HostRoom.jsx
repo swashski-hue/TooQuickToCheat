@@ -134,6 +134,12 @@ export default function HostRoom() {
     socket.emit("host:forceReveal", { code });
   }
 
+  function revealScoreboard() {
+    socket.emit("host:revealScoreboard", { code }, (res) => {
+      if (!res.ok && res.error) alert(res.error);
+    });
+  }
+
   function endGame() {
     socket.emit("host:endGame", { code }, () => navigate("/host"));
   }
@@ -302,7 +308,9 @@ export default function HostRoom() {
                   ⚡ FAST TRACKED! {reveal.fastTrackEvent.playerName} jumps to {reveal.fastTrackEvent.newScore} points!
                 </div>
               )}
-              <p className="subtitle">Calculating leaderboard...</p>
+              <button className="btn btn-primary btn-large" onClick={revealScoreboard}>
+                Show Scoreboard
+              </button>
             </>
           )}
 

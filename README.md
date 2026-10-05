@@ -25,8 +25,9 @@ Rounds aren't planned out in advance as one fixed quiz — you build up a shared
 2. Players, from anywhere (not restricted to your Wi-Fi), open **https://2quick2cheat.com/join** — or just the homepage → **Join a quiz** — and enter the room code, a name, and pick an emoji to represent them. No account needed to join.
 3. While players are joining, use **+ Add round** on the Quiz Master screen to build up your running order — pick a round from the bank and a round type for each. Reorder or remove entries with the ↑/↓/✕ buttons any time.
 4. Click **Start Quiz** once you've got at least one round queued and one player joined. The running order stays open the whole game — keep adding, removing, or reordering upcoming rounds even while a question is live; only the round actually being played is locked in.
-5. After a round's last question, click **Start Next Round** to pop the next queued round, or add one first if the queue's empty — or end the quiz.
-6. Open **📺 Presentation Screen** on a second device/tab (projector, TV, screen-share) for a read-only big-screen view everyone can watch.
+5. Once a question's answer is revealed, click **Show Scoreboard** whenever you're ready to move on — standings don't appear to players/presentation automatically, so you can take your time on the correct-answer screen first.
+6. After a round's last question, click **Start Next Round** to pop the next queued round, or add one first if the queue's empty — or end the quiz.
+7. Open **📺 Presentation Screen** on a second device/tab (projector, TV, screen-share) for a read-only big-screen view everyone can watch.
 
 ## Accounts & access
 
@@ -52,7 +53,7 @@ When adding a round to the running order, the picker shows you the round's full 
 
 Every question, picture or not, opens with a **question intro**: the host sees it first (with a **Reveal Answer Board & Start Timer** button) and players see just the question text (and picture, if any) — no answer board, no countdown. Nothing starts until the host clicks reveal, so hosts can read the question aloud, talk it up, or just take their time before the clock starts. Once revealed, players also get a collapsible bar at the top of their screen showing the question — tap it to expand the full text or picture at any point during the question. Picking an answer highlights it immediately (white for your own pick, then green for the correct one once it's revealed) — the answer screen itself stays up throughout, it never switches away to a separate result screen. The question timer always runs the full time limit regardless of how quickly everyone answers — it only ends early if the host presses **Reveal now**.
 
-Whoever answers correctly the fastest each question gets a little fanfare on the **Presentation Screen** — their emoji (picked when they joined) bursts across the screen with a "⚡ [Name] was fastest!" callout.
+Whoever answers correctly the fastest each question gets a little fanfare on the **Presentation Screen**, 3 seconds after the correct answer appears (so the splash doesn't cover it up) — their emoji (picked when they joined) bursts across the screen with a "⚡ [Name] was fastest!" callout.
 
 ## Round types
 
