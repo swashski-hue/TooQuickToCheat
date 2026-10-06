@@ -845,6 +845,10 @@ body {
   box-shadow: 0 0 0 2px var(--yellow) inset;
 }
 
+.go-wide-hint {
+  color: var(--yellow);
+}
+
 .go-wide-wildcard-btn {
   flex-shrink: 0;
   font-size: 1rem;
@@ -1493,13 +1497,6 @@ body {
   }
 }
 
-/* ---- Go Wide round: picked-but-not-yet-submitted state ---- */
-
-.answer-row.picked,
-.letter-btn.picked {
-  border-color: var(--yellow);
-  background: var(--surface-2);
-}
 
 /* ---- Player answer feedback: my locked-in pick (white), the correct one at reveal (green) ---- */
 

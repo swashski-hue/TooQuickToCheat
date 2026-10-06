@@ -527,6 +527,16 @@ io.on("connection", (socket) => {
     ack?.({ ok: true, result });
   });
 
+  // Multiple Choice/Normal Go Wide: a second pick submitted after the first,
+  // same "stays live after submitting" pattern as Number — see addSecondPick.
+  socket.on("player:addSecondPick", ({ code, pick }, ack) => {
+    const room = game.getRoom(code);
+    if (!room) return ack?.({ ok: false, error: "Room not found" });
+    const result = game.addSecondPick(room, socket.id, pick);
+    if (!result) return ack?.({ ok: false, error: "Could not add second pick" });
+    ack?.({ ok: true, result });
+  });
+
   socket.on("disconnect", () => {
     const code = socket.data.roomCode;
     if (!code) return;

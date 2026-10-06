@@ -458,6 +458,59 @@ export function updateGoWideNumber(room, socketId, wide) {
 }
 
 /**
+ * Multiple Choice/Normal Go Wide: submit one pick normally (full points), then
+ * optionally tap a second option afterward to widen for half points — rather
+ * than a pre-submission "go wide" mode. No-ops if the round isn't Go Wide, the
+ * player hasn't submitted a first pick yet, they've already gone wide (max 2
+ * picks), or the second pick duplicates the first.
+ */
+export function addSecondPick(room, socketId, pick) {
+  const player = room.players.get(socketId);
+  if (!player || room.state !== "question") return null;
+  if (!player.lastAnswer || Array.isArray(player.lastAnswer.given)) return null;
+  if (room.round.roundType !== "go_wide") return null;
+
+  const q = currentQuestion(room);
+  const firstGiven = player.lastAnswer.given;
+
+  let picks;
+  let isCorrect;
+  if (q.type === "normal") {
+    const second = (pick || "").toUpperCase();
+    if (!second || second === firstGiven) return null;
+    picks = [firstGiven, second];
+    const correctGroup = letterGroup(computeAnswerLetter(q.answerText));
+    isCorrect = picks.some((l) => letterGroup(l) === correctGroup);
+  } else if (q.type === "multiple_choice") {
+    if (!Number.isInteger(pick) || pick === firstGiven) return null;
+    picks = [firstGiven, pick];
+    isCorrect = picks.includes(q.correctIndex);
+  } else {
+    return null;
+  }
+
+  // Undo the previous outcome's effect on score and the correct-answer
+  // counter (rank is derived from that counter), then recompute from scratch.
+  const wasCorrect = player.lastAnswer.isCorrect;
+  player.score -= player.lastAnswer.points;
+  if (wasCorrect) room.correctAnswerCount -= 1;
+
+  let points = 0;
+  let rank = null;
+  if (isCorrect) {
+    room.correctAnswerCount += 1;
+    rank = room.correctAnswerCount;
+    const total = CORRECT_ANSWER_SCORE + (RANK_BONUS[rank - 1] || 0);
+    points = Math.round(total / 2); // a second pick always halves, same as any other Go Wide widen
+  }
+
+  player.lastAnswer = { ...player.lastAnswer, given: picks, isCorrect, points, rank };
+  player.score += points;
+
+  return player.lastAnswer;
+}
+
+/**
  * Fast Track: if everyone who was in the top 3 BEFORE this question got it
  * wrong (or didn't answer), whoever answered correctly the fastest — by
  * definition, someone outside the top 3 — jumps to equal the leader's score.

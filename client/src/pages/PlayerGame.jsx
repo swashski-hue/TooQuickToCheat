@@ -39,8 +39,6 @@ export default function PlayerGame() {
   const [wideNumber, setWideNumber] = useState(false); // number + Go Wide: accept ±1 for half points, changeable even after submitting
   const [sequenceOrder, setSequenceOrder] = useState([]); // array of {text, originalIndex}
   const [wideSkipIndex, setWideSkipIndex] = useState(null); // sequence + Go Wide: one item's position is ignored
-  const [goWideMode, setGoWideMode] = useState(false); // MC/Normal + Go Wide: optionally pick 2 for half points instead of 1 for full
-  const [goWidePicks, setGoWidePicks] = useState([]); // array of optionIndex (multiple_choice) or letter (normal), only used once goWideMode is on
   const [myScore, setMyScore] = useState(0);
   const tickRef = useRef(null);
 
@@ -85,8 +83,6 @@ export default function PlayerGame() {
       setWideNumber(false);
       setSequenceOrder([]);
       setWideSkipIndex(null);
-      setGoWideMode(false);
-      setGoWidePicks([]);
       setPhase("question");
       setSecondsLeft(b.timeLimitSeconds);
     });
@@ -145,21 +141,21 @@ export default function PlayerGame() {
     });
   }
 
-  // Whether this question's type even offers the optional 2-pick Go Wide mode
-  // (vs. the player having actually turned it on, which is goWideMode below).
+  // Whether this question's type even offers Go Wide's second-pick mechanic.
   const supportsGoWidePicks =
     board?.roundType === "go_wide" && (board.type === "multiple_choice" || board.type === "normal");
 
-  function toggleGoWidePick(value) {
-    if (myAnswer) return;
-    setGoWidePicks((picks) => {
-      if (picks.includes(value)) return picks.filter((p) => p !== value);
-      if (picks.length >= 2) return picks;
-      const next = [...picks, value];
-      if (next.length === 2) {
-        submitResponse(board.type === "normal" ? { letters: next } : { optionIndices: next });
-      }
-      return next;
+  // Can this player still tap a second option? Only once they've already
+  // submitted a first pick, the round is Go Wide, and they haven't gone wide yet.
+  const canAddSecondPick = supportsGoWidePicks && !!myAnswer && !Array.isArray(myAnswer.given);
+
+  // MC/Normal Go Wide: the first pick submits normally (full points); tapping
+  // a second, different option afterward widens it for half points instead
+  // of requiring a "go wide" mode to be chosen before answering at all.
+  function addSecondPick(value) {
+    if (!canAddSecondPick || isGivenValue(value)) return;
+    socket.emit("player:addSecondPick", { code, pick: value }, (res) => {
+      if (res.ok) setMyAnswer(res.result);
     });
   }
 
@@ -173,9 +169,10 @@ export default function PlayerGame() {
     setNumberInput((s) => (s.length >= 12 ? s : s + d));
   }
 
-  // Go Wide on a Number question stays changeable even after submitting (in
-  // case the player second-guesses themselves) — update locally and, once
-  // already submitted, tell the server to recompute correctness/points.
+  // Go Wide on a Number question is one-way (select it, can't unselect) but
+  // stays pressable even after submitting (in case the player second-guesses
+  // themselves) — update locally and, once already submitted, tell the
+  // server to recompute correctness/points.
   function setGoWideNumber(next) {
     setWideNumber(next);
     if (myAnswer) socket.emit("player:updateGoWide", { code, wide: next });
@@ -301,29 +298,22 @@ export default function PlayerGame() {
           )}
 
           <div className="answer-area">
-            {supportsGoWidePicks && phase === "question" && !myAnswer && (
-              <button
-                type="button"
-                className={`btn go-wide-toggle ${goWideMode ? "active" : ""}`}
-                onClick={() => {
-                  setGoWideMode((w) => !w);
-                  setGoWidePicks([]);
-                }}
-              >
-                🎯 Go Wide — pick 2, half points{goWideMode ? ` (${goWidePicks.length}/2 picked)` : ""}
-              </button>
+            {canAddSecondPick && phase === "question" && (
+              <p className="subtitle center-text go-wide-hint">
+                🎯 Locked in! Tap another option to go wide for half points.
+              </p>
             )}
 
             {board.type === "multiple_choice" ? (
               <div className="answer-list">
                 {board.options.map((opt, i) => (
                   <button
-                    className={`answer-row ${phase === "question" && goWideMode && goWidePicks.includes(i) ? "picked" : ""} ${
-                      isGivenValue(i) ? "chosen" : ""
-                    } ${phase === "reveal" && i === reveal.correctIndex ? "correct" : ""}`}
+                    className={`answer-row ${isGivenValue(i) ? "chosen" : ""} ${
+                      phase === "reveal" && i === reveal.correctIndex ? "correct" : ""
+                    }`}
                     key={i}
-                    disabled={phase === "reveal" || !!myAnswer}
-                    onClick={() => !myAnswer && (goWideMode ? toggleGoWidePick(i) : submitResponse({ optionIndex: i }))}
+                    disabled={phase === "reveal" || (!!myAnswer && !(canAddSecondPick && !isGivenValue(i)))}
+                    onClick={() => (myAnswer ? addSecondPick(i) : submitResponse({ optionIndex: i }))}
                   >
                     <span className="option-label" style={{ background: OPTION_COLORS[i % OPTION_COLORS.length] }}>
                       {OPTION_LABELS[i]}
@@ -340,14 +330,10 @@ export default function PlayerGame() {
                   const isCorrectTile = phase === "reveal" && letters.includes(reveal.correctLetter);
                   return (
                     <button
-                      className={`letter-btn ${
-                        phase === "question" && goWideMode && letters.some((l) => goWidePicks.includes(l)) ? "picked" : ""
-                      } ${isChosen ? "chosen" : ""} ${isCorrectTile ? "correct" : ""}`}
+                      className={`letter-btn ${isChosen ? "chosen" : ""} ${isCorrectTile ? "correct" : ""}`}
                       key={tile}
-                      disabled={phase === "reveal" || !!myAnswer}
-                      onClick={() =>
-                        !myAnswer && (goWideMode ? toggleGoWidePick(letters[0]) : submitResponse({ letter: letters[0] }))
-                      }
+                      disabled={phase === "reveal" || (!!myAnswer && !(canAddSecondPick && !isChosen))}
+                      onClick={() => (myAnswer ? addSecondPick(letters[0]) : submitResponse({ letter: letters[0] }))}
                     >
                       {tile}
                     </button>
@@ -362,9 +348,10 @@ export default function PlayerGame() {
                     <button
                       type="button"
                       className={`btn go-wide-toggle ${wideNumber ? "active" : ""}`}
-                      onClick={() => setGoWideNumber(!wideNumber)}
+                      disabled={wideNumber}
+                      onClick={() => setGoWideNumber(true)}
                     >
-                      🎯 Go Wide (±1, half points){wideNumber ? " — ON" : ""}
+                      {wideNumber ? "🎯 Go Wide (±1, half points) — selected" : "🎯 Go Wide (±1, half points)"}
                     </button>
                   )}
                 </div>
@@ -374,9 +361,10 @@ export default function PlayerGame() {
                     <button
                       type="button"
                       className={`btn go-wide-toggle ${wideNumber ? "active" : ""}`}
-                      onClick={() => setGoWideNumber(!wideNumber)}
+                      disabled={wideNumber}
+                      onClick={() => setGoWideNumber(true)}
                     >
-                      🎯 Go Wide (±1, half points){wideNumber ? " — ON" : ""}
+                      {wideNumber ? "🎯 Go Wide (±1, half points) — selected" : "🎯 Go Wide (±1, half points)"}
                     </button>
                   )}
                   <div className={`keypad-display ${phase === "reveal" ? "correct" : ""}`}>
