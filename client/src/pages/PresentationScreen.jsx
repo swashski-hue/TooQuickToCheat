@@ -258,19 +258,19 @@ export default function PresentationScreen() {
             </div>
           )}
           {reveal.type === "normal" && (
-            <div className="present-options">
+            <div className="present-options present-options-single">
               <div className="present-option correct">
                 {reveal.correctLetter} — {reveal.answerText}
               </div>
             </div>
           )}
           {reveal.type === "number" && (
-            <div className="present-options">
+            <div className="present-options present-options-single">
               <div className="present-option correct">{reveal.correctNumber}</div>
             </div>
           )}
           {reveal.type === "sequence" && (
-            <div className="present-options">
+            <div className="present-options present-options-single">
               <div className="present-option correct">{reveal.correctOrder.join(" → ")}</div>
             </div>
           )}

@@ -1328,6 +1328,20 @@ body {
   color: var(--pa-mint-dark);
 }
 
+/* Normal/number/sequence reveal only ever render one answer box — left in
+   the 2-column options grid it sits in the first cell (top-left) like a
+   stranded "option A" instead of reading as the single focused answer. */
+.present-options-single {
+  display: flex;
+  justify-content: center;
+}
+
+.present-options-single .present-option {
+  min-width: 320px;
+  max-width: 700px;
+  text-align: center;
+}
+
 .present-hint {
   color: #534d6b;
   font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
