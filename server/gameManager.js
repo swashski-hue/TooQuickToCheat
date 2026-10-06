@@ -291,6 +291,7 @@ export function questionIntroPayload(room) {
   const q = currentQuestion(room);
   if (!q) return null;
   return {
+    type: q.type,
     pictureUrl: q.pictureUrl,
     text: q.text,
     index: room.questionIndex,

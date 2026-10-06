@@ -5,6 +5,16 @@ import { SERVER_URL } from "../lib/api.js";
 import { ROUND_TYPE_LABELS, FAST_TRACK_LABEL } from "../lib/roundTypes.js";
 import { rankColor } from "../lib/rankColor.js";
 
+// Shown above the question on both the intro screen and the live question
+// board, so the room knows what kind of question is coming and how to
+// answer it before the options/board even appear.
+const QUESTION_TYPE_META = {
+  multiple_choice: { label: "✅ Multiple choice question", hint: "Choose the correct option on your phone" },
+  normal: { label: "🔤 Alphabet question", hint: "Tap the first letter of the answer" },
+  number: { label: "🔢 Number question", hint: "Type your answer on the keypad" },
+  sequence: { label: "🔀 Sequence question", hint: "Put the events in the right order" },
+};
+
 export default function PresentationScreen() {
   const { code } = useParams();
   const navigate = useNavigate();
@@ -160,20 +170,34 @@ export default function PresentationScreen() {
 
       {phase === "intro" && intro && (
         <div className="present-center">
-          <p className="present-progress">
-            Q{intro.index + 1} / {intro.total}
-          </p>
+          {QUESTION_TYPE_META[intro.type] && (
+            <>
+              <p className="present-type-label">{QUESTION_TYPE_META[intro.type].label}</p>
+              <p className="present-type-hint">{QUESTION_TYPE_META[intro.type].hint}</p>
+            </>
+          )}
           {pictureUrl && (
             <div className="picture-display present-picture">
               <img src={`${SERVER_URL}${pictureUrl}`} alt="" />
             </div>
           )}
-          <h1 className="present-question">{intro.text}</h1>
+          <div className="present-question-box">
+            <p className="present-progress">
+              Q{intro.index + 1} / {intro.total}
+            </p>
+            <h1 className="present-question">{intro.text}</h1>
+          </div>
         </div>
       )}
 
       {phase === "question" && board && (
         <div className="present-center">
+          {QUESTION_TYPE_META[board.type] && (
+            <>
+              <p className="present-type-label">{QUESTION_TYPE_META[board.type].label}</p>
+              <p className="present-type-hint">{QUESTION_TYPE_META[board.type].hint}</p>
+            </>
+          )}
           <div className="present-top-row">
             <span className="present-progress">
               Q{board.index + 1} / {board.total}
@@ -189,7 +213,9 @@ export default function PresentationScreen() {
               <img src={`${SERVER_URL}${pictureUrl}`} alt="" />
             </div>
           )}
-          <h1 className="present-question">{board.text}</h1>
+          <div className="present-question-box">
+            <h1 className="present-question">{board.text}</h1>
+          </div>
 
           {board.type === "multiple_choice" && (
             <div className="present-options">
@@ -200,8 +226,6 @@ export default function PresentationScreen() {
               ))}
             </div>
           )}
-          {board.type === "normal" && <p className="present-hint">Press the first letter on your phone</p>}
-          {board.type === "number" && <p className="present-hint">Type your answer on your phone</p>}
           {board.type === "sequence" && (
             <div className="present-options">
               {board.items.map((item) => (

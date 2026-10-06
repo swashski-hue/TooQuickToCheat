@@ -1416,11 +1416,46 @@ body {
   max-height: 360px;
 }
 
+.present-type-label {
+  font-family: var(--font-game);
+  font-size: 1.3rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6a4fcf;
+  margin: 0;
+}
+
+.present-type-hint {
+  color: #6a4fcf;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 1.15rem;
+  margin: 4px 0 16px;
+}
+
+.present-question-box {
+  width: 100%;
+  max-width: 900px;
+  background: #fff;
+  border: 4px solid var(--pa-navy);
+  border-radius: 20px;
+  padding: 28px 40px;
+  margin-bottom: 20px;
+  box-shadow: 7px 7px 0 var(--pa-navy);
+}
+
+.present-question-box .present-progress {
+  margin: 0 0 8px;
+}
+
 .present-question {
   font-size: 2.6rem;
   line-height: 1.25;
   margin: 10px 0 20px;
   color: var(--pa-navy);
+}
+
+.present-question-box .present-question {
+  margin: 0;
 }
 
 .present-options {
@@ -1459,13 +1494,6 @@ body {
   min-width: 320px;
   max-width: 700px;
   text-align: center;
-}
-
-.present-hint {
-  color: #534d6b;
-  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-  font-size: 1.6rem;
-  font-style: italic;
 }
 
 .present-answered {
