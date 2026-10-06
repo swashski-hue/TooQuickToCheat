@@ -74,72 +74,76 @@ export default function PlayerJoin() {
 
   if (step === "code") {
     return (
-      <div className="screen center">
-        <h1 className="title">Join Quiz</h1>
-        <form className="stack" onSubmit={onCheckRoom}>
-          <label className="field">
-            <span>Room code</span>
-            <input
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              placeholder="ABCDE"
-              maxLength={5}
-              autoCapitalize="characters"
-              autoFocus
-            />
-          </label>
-          {error && <p className="error">{error}</p>}
-          <button className="btn btn-primary btn-large" type="submit" disabled={checking}>
-            {checking ? "Checking..." : "Continue"}
-          </button>
-        </form>
+      <div className="player-screen">
+        <div className="screen center">
+          <h1 className="title">Join Quiz</h1>
+          <form className="stack" onSubmit={onCheckRoom}>
+            <label className="field">
+              <span>Room code</span>
+              <input
+                value={code}
+                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                placeholder="ABCDE"
+                maxLength={5}
+                autoCapitalize="characters"
+                autoFocus
+              />
+            </label>
+            {error && <p className="error">{error}</p>}
+            <button className="btn btn-primary btn-large" type="submit" disabled={checking}>
+              {checking ? "Checking..." : "Continue"}
+            </button>
+          </form>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="screen center">
-      <h1 className="title">You're in room {code.trim().toUpperCase()}</h1>
-      <form className="stack" onSubmit={onJoin}>
-        <label className="field">
-          <span>Team / player name</span>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nickname" maxLength={24} autoFocus />
-        </label>
-        <div className="field">
-          <span>Pick an emoji</span>
-          <div className="emoji-picker">
-            {EMOJIS.map((e) => {
-              const isTaken = takenEmojis.includes(e) && e !== emoji;
-              return (
-                <button
-                  type="button"
-                  key={e}
-                  className={`emoji-picker-option ${emoji === e ? "selected" : ""} ${isTaken ? "taken" : ""}`}
-                  onClick={() => !isTaken && setEmoji(e)}
-                  disabled={isTaken}
-                  title={isTaken ? "Already taken in this room" : ""}
-                >
-                  {e}
-                </button>
-              );
-            })}
+    <div className="player-screen">
+      <div className="screen center">
+        <h1 className="title">You're in room {code.trim().toUpperCase()}</h1>
+        <form className="stack" onSubmit={onJoin}>
+          <label className="field">
+            <span>Team / player name</span>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nickname" maxLength={24} autoFocus />
+          </label>
+          <div className="field">
+            <span>Pick an emoji</span>
+            <div className="emoji-picker">
+              {EMOJIS.map((e) => {
+                const isTaken = takenEmojis.includes(e) && e !== emoji;
+                return (
+                  <button
+                    type="button"
+                    key={e}
+                    className={`emoji-picker-option ${emoji === e ? "selected" : ""} ${isTaken ? "taken" : ""}`}
+                    onClick={() => !isTaken && setEmoji(e)}
+                    disabled={isTaken}
+                    title={isTaken ? "Already taken in this room" : ""}
+                  >
+                    {e}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-        {error && <p className="error">{error}</p>}
-        <button
-          className="btn btn-link"
-          type="button"
-          onClick={() => {
-            setStep("code");
-            setError("");
-          }}
-        >
-          Back
-        </button>
-        <button className="btn btn-primary btn-large" type="submit" disabled={joining}>
-          {joining ? "Joining..." : "Join"}
-        </button>
-      </form>
+          {error && <p className="error">{error}</p>}
+          <button
+            className="btn btn-link"
+            type="button"
+            onClick={() => {
+              setStep("code");
+              setError("");
+            }}
+          >
+            Back
+          </button>
+          <button className="btn btn-primary btn-large" type="submit" disabled={joining}>
+            {joining ? "Joining..." : "Join"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

@@ -632,12 +632,17 @@ body {
   box-shadow: 4px 4px 0 var(--pa-navy);
 }
 
-.player-screen .btn-primary {
+.player-screen .btn.btn-primary {
   background: var(--pa-navy);
   border: 3px solid var(--pa-navy);
   border-radius: 14px;
+  color: #fff;
   box-shadow: 3px 3px 0 var(--pa-navy-dark);
   font-family: var(--font-game);
+}
+
+.player-screen .btn.btn-primary:hover {
+  background: #433d57;
 }
 
 .player-screen .correct-text {
@@ -646,6 +651,78 @@ body {
 
 .player-screen .wrong-text {
   color: var(--pa-coral-dark);
+}
+
+/* Home, PlayerJoin (room code / name / emoji) share the player look too */
+
+.player-screen .btn {
+  border: 3px solid var(--pa-navy);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--pa-navy);
+  box-shadow: 3px 3px 0 var(--pa-navy);
+  font-family: var(--font-game);
+}
+
+.player-screen .btn:hover {
+  background: #f3eefc;
+}
+
+.player-screen .btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--pa-navy);
+}
+
+.player-screen .btn-link {
+  border: none;
+  background: none;
+  box-shadow: none;
+  color: #534d6b;
+  text-decoration: underline;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+.player-screen .btn-link:hover {
+  background: none;
+}
+
+.player-screen .btn-link:active {
+  transform: none;
+}
+
+.player-screen .btn:disabled {
+  opacity: 0.5;
+}
+
+.player-screen .field span {
+  color: #534d6b;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+.player-screen .field input,
+.player-screen .field select {
+  border: 2px solid var(--pa-navy);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--pa-navy);
+  font-family: var(--font-game);
+}
+
+.player-screen .error {
+  color: var(--pa-coral-dark);
+}
+
+.player-screen .emoji-picker-option {
+  border: 3px solid var(--pa-navy);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 3px 3px 0 var(--pa-navy);
+}
+
+.player-screen .emoji-picker-option.selected {
+  background: var(--pa-amber);
+  box-shadow: 1px 1px 0 var(--pa-navy);
+  transform: translate(2px, 2px);
 }
 
 .top-bar {
