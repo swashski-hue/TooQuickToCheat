@@ -517,6 +517,16 @@ io.on("connection", (socket) => {
     });
   });
 
+  // Lets a player flip Go Wide on a Number question after already submitting,
+  // as long as the question is still live — see updateGoWideNumber for why.
+  socket.on("player:updateGoWide", ({ code, wide }, ack) => {
+    const room = game.getRoom(code);
+    if (!room) return ack?.({ ok: false, error: "Room not found" });
+    const result = game.updateGoWideNumber(room, socket.id, !!wide);
+    if (!result) return ack?.({ ok: false, error: "Could not update answer" });
+    ack?.({ ok: true, result });
+  });
+
   socket.on("disconnect", () => {
     const code = socket.data.roomCode;
     if (!code) return;

@@ -36,8 +36,7 @@ export default function PlayerGame() {
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [questionExpanded, setQuestionExpanded] = useState(false);
   const [numberInput, setNumberInput] = useState("");
-  const [numberLocked, setNumberLocked] = useState(false); // number: typed value confirmed, Go Wide still changeable before final submit
-  const [wideNumber, setWideNumber] = useState(false); // number + Go Wide: accept ±1 for half points
+  const [wideNumber, setWideNumber] = useState(false); // number + Go Wide: accept ±1 for half points, changeable even after submitting
   const [sequenceOrder, setSequenceOrder] = useState([]); // array of {text, originalIndex}
   const [wideSkipIndex, setWideSkipIndex] = useState(null); // sequence + Go Wide: one item's position is ignored
   const [goWideMode, setGoWideMode] = useState(false); // MC/Normal + Go Wide: optionally pick 2 for half points instead of 1 for full
@@ -83,7 +82,6 @@ export default function PlayerGame() {
       setReveal(null);
       setQuestionExpanded(false);
       setNumberInput("");
-      setNumberLocked(false);
       setWideNumber(false);
       setSequenceOrder([]);
       setWideSkipIndex(null);
@@ -166,23 +164,21 @@ export default function PlayerGame() {
   }
 
   function pressDigit(d) {
-    if (myAnswer || numberLocked) return;
+    if (myAnswer) return;
     if (d === "C") return setNumberInput("");
     if (d === "enter") {
       if (numberInput === "") return;
-      return setNumberLocked(true);
+      return submitResponse({ number: Number(numberInput), wide: wideNumber });
     }
     setNumberInput((s) => (s.length >= 12 ? s : s + d));
   }
 
-  function editNumber() {
-    if (myAnswer) return;
-    setNumberLocked(false);
-  }
-
-  function submitNumber() {
-    if (myAnswer) return;
-    submitResponse({ number: Number(numberInput), wide: wideNumber });
+  // Go Wide on a Number question stays changeable even after submitting (in
+  // case the player second-guesses themselves) — update locally and, once
+  // already submitted, tell the server to recompute correctness/points.
+  function setGoWideNumber(next) {
+    setWideNumber(next);
+    if (myAnswer) socket.emit("player:updateGoWide", { code, wide: next });
   }
 
   const sequencePool = useMemo(() => {
@@ -360,27 +356,17 @@ export default function PlayerGame() {
               </div>
             ) : board.type === "number" ? (
               myAnswer && phase === "question" ? (
-                <p className="subtitle center-text">Answer locked in. Waiting for others...</p>
-              ) : numberLocked && phase === "question" ? (
                 <div className="keypad-wrap">
-                  <div className="keypad-display">{numberInput}</div>
+                  <p className="subtitle center-text">Answer locked in. Waiting for others...</p>
                   {board.roundType === "go_wide" && (
                     <button
                       type="button"
                       className={`btn go-wide-toggle ${wideNumber ? "active" : ""}`}
-                      onClick={() => setWideNumber((w) => !w)}
+                      onClick={() => setGoWideNumber(!wideNumber)}
                     >
                       🎯 Go Wide (±1, half points){wideNumber ? " — ON" : ""}
                     </button>
                   )}
-                  <div className="keypad-confirm-row">
-                    <button type="button" className="btn btn-link" onClick={editNumber}>
-                      Edit answer
-                    </button>
-                    <button type="button" className="btn btn-primary btn-large" onClick={submitNumber}>
-                      Submit
-                    </button>
-                  </div>
                 </div>
               ) : (
                 <div className="keypad-wrap">
@@ -388,7 +374,7 @@ export default function PlayerGame() {
                     <button
                       type="button"
                       className={`btn go-wide-toggle ${wideNumber ? "active" : ""}`}
-                      onClick={() => setWideNumber((w) => !w)}
+                      onClick={() => setGoWideNumber(!wideNumber)}
                     >
                       🎯 Go Wide (±1, half points){wideNumber ? " — ON" : ""}
                     </button>

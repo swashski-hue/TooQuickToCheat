@@ -418,6 +418,46 @@ export function submitAnswer(room, socketId, response) {
 }
 
 /**
+ * Lets a player flip the Go Wide (±1) toggle for a Number question AFTER
+ * they've already submitted, right up until the question ends — so second-
+ * guessing themselves doesn't require editing/resubmitting the number itself.
+ * Recomputes correctness/points from their already-submitted number and the
+ * new `wide` flag, keeping their original `elapsedMs` (used by Fast Track).
+ */
+export function updateGoWideNumber(room, socketId, wide) {
+  const player = room.players.get(socketId);
+  if (!player || room.state !== "question") return null;
+  if (!player.lastAnswer) return null; // must have already submitted a number
+
+  const q = currentQuestion(room);
+  if (q.type !== "number" || room.round.roundType !== "go_wide") return null;
+
+  const given = player.lastAnswer.given;
+  const wasCorrect = player.lastAnswer.isCorrect;
+  const isCorrect =
+    !Number.isNaN(given) && (wide ? Math.abs(given - q.answerNumber) <= 1 : given === q.answerNumber);
+
+  // Undo the previous outcome's effect on score and the correct-answer counter
+  // (rank is derived from that counter), then recompute from scratch.
+  player.score -= player.lastAnswer.points;
+  if (wasCorrect) room.correctAnswerCount -= 1;
+
+  let points = 0;
+  let rank = null;
+  if (isCorrect) {
+    room.correctAnswerCount += 1;
+    rank = room.correctAnswerCount;
+    const total = CORRECT_ANSWER_SCORE + (RANK_BONUS[rank - 1] || 0);
+    points = wide ? Math.round(total / 2) : total;
+  }
+
+  player.lastAnswer = { ...player.lastAnswer, isCorrect, points, rank };
+  player.score += points;
+
+  return player.lastAnswer;
+}
+
+/**
  * Fast Track: if everyone who was in the top 3 BEFORE this question got it
  * wrong (or didn't answer), whoever answered correctly the fastest — by
  * definition, someone outside the top 3 — jumps to equal the leader's score.
