@@ -46,12 +46,18 @@ equivalent fix yet — see below.)*
 limiting · single-origin deploy (server serves the built client) ·
 `DATA_DIR` env var for persistent storage · live on Render
 (`github.com/swashski-hue/TooQuickToCheat`, auto-deploy on push to `main`)
-at the custom domain `2quick2cheat.com`.
+at the custom domain `2quick2cheat.com` · upload cleanup — deleting a
+question, clearing/replacing its picture, or deleting a whole round now
+deletes the now-unreferenced file(s) from `server/data/uploads/`
+(`bankStore.js`'s `updateRound`/`deleteRound`), checking first that no
+other round still references the same upload. *(Logic only, unverified via
+the Quiz Bank UI — covered by a throwaway `bankStore.js` script, not
+confirmed end-to-end yet.)*
 
 All of the above is live-verified either in-browser this session or
 directly by the user on a real device — nothing in this list is "logic
-only, unverified" at this point. If that changes for something new, flag it
-explicitly in this file until it's confirmed.
+only, unverified" at this point except where flagged. If that changes for
+something new, flag it explicitly in this file until it's confirmed.
 
 ## Known gaps (not yet fixed)
 
@@ -63,13 +69,6 @@ explicitly in this file until it's confirmed.
 - **No automated test suite** — see `CLAUDE.md`'s "Testing convention" for
   the isolated-script pattern used instead.
 - **No Quiz Bank export/import** — no way to back up or share rounds as a file.
-- **Orphaned uploads** — deleting a question/round, or just hitting "Remove
-  picture" on one (`RoundEditor.jsx`), only clears the `pictureUrl`
-  reference — the file stays in `server/data/uploads/` forever. No cleanup
-  mechanism, so the 1GB disk (`render.yaml`) only ever fills up. Not urgent
-  at current usage, but worth a sweep (e.g. delete-on-replace, or a
-  garbage-collect pass comparing bank.json's referenced URLs against the
-  uploads folder) before it becomes a real problem.
 - **Legacy rounds have `ownerId: null`** — the two original sample rounds
   predate accounts; can't be made private without recreating them.
 - **Game state is in-memory only** — a server crash/redeploy loses any

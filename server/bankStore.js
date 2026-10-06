@@ -8,6 +8,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // instead of the local server/data folder.
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
 const DATA_FILE = path.join(DATA_DIR, "bank.json");
+// Kept in sync with index.js's UPLOADS_DIR — needed here to clean up orphaned
+// picture uploads when a question/round referencing them is removed.
+const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 const MAX_QUESTIONS_PER_ROUND = 10;
 fs.mkdirSync(DATA_DIR, { recursive: true });
 
@@ -70,6 +73,7 @@ export function updateRound(id, { name, questions, visibility }) {
   const rounds = readAll();
   const idx = rounds.findIndex((r) => r.id === id);
   if (idx === -1) return null;
+  const oldPictures = picturesOf(rounds[idx]);
   rounds[idx] = {
     ...rounds[idx],
     name: name ?? rounds[idx].name,
@@ -78,14 +82,39 @@ export function updateRound(id, { name, questions, visibility }) {
     // ownerId, createdBy and createdAt are set once at creation and never change.
   };
   writeAll(rounds);
+  if (questions) cleanUpOrphanedPictures(oldPictures, rounds);
   return rounds[idx];
 }
 
 export function deleteRound(id) {
   const rounds = readAll();
+  const target = rounds.find((r) => r.id === id);
+  if (!target) return false;
   const next = rounds.filter((r) => r.id !== id);
   writeAll(next);
-  return next.length !== rounds.length;
+  cleanUpOrphanedPictures(picturesOf(target), next);
+  return true;
+}
+
+/** All pictureUrls a round's questions reference. */
+function picturesOf(round) {
+  return new Set((round.questions || []).map((q) => q.pictureUrl).filter(Boolean));
+}
+
+/**
+ * Deletes each previously-referenced upload file that no round in `rounds`
+ * still references — i.e. a question/round was deleted or had its picture
+ * removed/replaced. Safe even though uploads are never reused across
+ * questions in practice: it re-checks the whole bank before unlinking.
+ */
+function cleanUpOrphanedPictures(candidateUrls, rounds) {
+  if (candidateUrls.size === 0) return;
+  const stillReferenced = new Set();
+  for (const r of rounds) for (const url of picturesOf(r)) stillReferenced.add(url);
+  for (const url of candidateUrls) {
+    if (stillReferenced.has(url)) continue;
+    fs.rmSync(path.join(UPLOADS_DIR, path.basename(url)), { force: true });
+  }
 }
 
 const QUESTION_TYPES = ["multiple_choice", "normal", "number", "sequence"];
