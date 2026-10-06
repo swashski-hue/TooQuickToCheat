@@ -508,24 +508,20 @@ body {
 }
 
 .answer-btn {
-  padding: 24px 12px;
-  font-size: 1.1rem;
+  min-height: 72px;
+  padding: 14px 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-}
-
-.option-label {
-  background: var(--primary);
-  color: white;
-  border-radius: 50%;
-  width: 28px;
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.85rem;
+  text-align: center;
+  text-transform: uppercase;
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: 0.02em;
+  border-radius: 14px;
+  border: 2px solid var(--surface-2);
+  background: var(--surface-2);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
 }
 
 .correct-text {
@@ -693,24 +689,30 @@ body {
 .answer-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
   width: 100%;
-  padding: 16px;
-  border-radius: 12px;
-  border: 1px solid var(--surface-2);
-  background: var(--surface);
+  min-height: 88px;
+  padding: 20px 16px;
+  border-radius: 14px;
+  border: 2px solid var(--surface-2);
+  background: var(--surface-2);
   color: var(--text);
-  font-size: 1.05rem;
-  text-align: left;
+  text-align: center;
   cursor: pointer;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
 }
 
 .answer-row:active {
   background: var(--primary);
+  border-color: var(--primary);
 }
 
-.answer-row .option-label {
-  flex-shrink: 0;
+.option-text {
+  flex: 1;
+  text-transform: uppercase;
+  font-weight: 700;
+  font-size: 1.3rem;
+  letter-spacing: 0.02em;
 }
 
 .keypad-wrap {
@@ -783,26 +785,41 @@ body {
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 12px 14px;
-  border-radius: 10px;
-  border: 1px solid var(--primary-light);
+  min-height: 72px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 2px solid var(--primary-light);
   background: var(--surface-2);
   color: var(--text);
-  text-align: left;
+  text-align: center;
   cursor: pointer;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
 }
 
 .sequence-chip-num {
   background: var(--primary);
   color: white;
   border-radius: 50%;
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   flex-shrink: 0;
+}
+
+.sequence-chip-text {
+  flex: 1;
+  text-transform: uppercase;
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: 0.02em;
+}
+
+.sequence-chip-remove {
+  flex-shrink: 0;
+  color: var(--text-dim);
 }
 
 .sequence-pool {

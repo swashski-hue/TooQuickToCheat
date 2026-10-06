@@ -6,9 +6,6 @@ import { LETTER_TILES, tileLetters } from "../lib/answerLetter.js";
 import { ROUND_TYPE_LABELS } from "../lib/roundTypes.js";
 import { loadPlayerSession, clearPlayerSession } from "../lib/playerSession.js";
 
-const OPTION_LABELS = ["A", "B", "C", "D", "E", "F"];
-// Cycled like SNES face buttons (red/yellow/green/blue) for a retro feel.
-const OPTION_COLORS = ["var(--red)", "var(--yellow)", "var(--green)", "var(--blue)"];
 const KEYPAD_ROWS = [
   ["1", "2", "3"],
   ["4", "5", "6"],
@@ -315,9 +312,6 @@ export default function PlayerGame() {
                     disabled={phase === "reveal" || (!!myAnswer && !(canAddSecondPick && !isGivenValue(i)))}
                     onClick={() => (myAnswer ? addSecondPick(i) : submitResponse({ optionIndex: i }))}
                   >
-                    <span className="option-label" style={{ background: OPTION_COLORS[i % OPTION_COLORS.length] }}>
-                      {OPTION_LABELS[i]}
-                    </span>
                     <span className="option-text">{opt}</span>
                   </button>
                 ))}
@@ -394,7 +388,8 @@ export default function PlayerGame() {
                     {reveal.correctOrder.map((text, i) => (
                       <div className="sequence-chip-row" key={i}>
                         <span className="sequence-chip correct">
-                          <span className="sequence-chip-num">{i + 1}</span> {text}
+                          <span className="sequence-chip-num">{i + 1}</span>
+                          <span className="sequence-chip-text">{text}</span>
                         </span>
                       </div>
                     ))}
@@ -413,7 +408,9 @@ export default function PlayerGame() {
                     {sequenceOrder.map((item, i) => (
                       <div className="sequence-chip-row" key={item.originalIndex}>
                         <button className="sequence-chip" onClick={() => undoSequenceItem(i)}>
-                          <span className="sequence-chip-num">{i + 1}</span> {item.text} ✕
+                          <span className="sequence-chip-num">{i + 1}</span>
+                          <span className="sequence-chip-text">{item.text}</span>
+                          <span className="sequence-chip-remove">✕</span>
                         </button>
                         {board.roundType === "go_wide" && (
                           <button
