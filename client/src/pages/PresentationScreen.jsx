@@ -169,24 +169,98 @@ export default function PresentationScreen() {
       )}
 
       {phase === "intro" && intro && (
-        <div className="present-center">
+        <div className="present-center present-intro-row">
+          <div className="present-main">
+            {QUESTION_TYPE_META[intro.type] && (
+              <>
+                <p className="present-type-label">{QUESTION_TYPE_META[intro.type].label}</p>
+                <p className="present-type-hint">{QUESTION_TYPE_META[intro.type].hint}</p>
+              </>
+            )}
+            {pictureUrl && (
+              <div className="picture-display present-picture">
+                <img src={`${SERVER_URL}${pictureUrl}`} alt="" />
+              </div>
+            )}
+            <div className="present-question-box">
+              <p className="present-progress">
+                Q{intro.index + 1} / {intro.total}
+              </p>
+              <h1 className="present-question">{intro.text}</h1>
+            </div>
+          </div>
+
+          {/* Abstract, type-generic preview of what the player's phone shows —
+              never real question/answer content, so it works before the board loads. */}
           {QUESTION_TYPE_META[intro.type] && (
-            <>
-              <p className="present-type-label">{QUESTION_TYPE_META[intro.type].label}</p>
-              <p className="present-type-hint">{QUESTION_TYPE_META[intro.type].hint}</p>
-            </>
-          )}
-          {pictureUrl && (
-            <div className="picture-display present-picture">
-              <img src={`${SERVER_URL}${pictureUrl}`} alt="" />
+            <div className="phone-preview-wrap">
+              <p className="phone-preview-label">Your phone shows</p>
+              <div className="phone-mockup">
+                <div className="pm-screen">
+                  <div className="pm-topbar">
+                    <span className="pm-hud pm-score">40 PTS</span>
+                    <span className="pm-progress">
+                      Q{intro.index + 1}/{intro.total}
+                    </span>
+                    <span className="pm-hud pm-timer">12s</span>
+                  </div>
+                  <div className="pm-timerbar">
+                    <div className="pm-timerfill" />
+                  </div>
+                  <div className="pm-qpanel">
+                    <div className="pm-qtext">QUESTION</div>
+                  </div>
+
+                  {intro.type === "multiple_choice" && (
+                    <div className="pm-answers">
+                      <div className="pm-answer">A</div>
+                      <div className="pm-answer">B</div>
+                      <div className="pm-answer">C</div>
+                      <div className="pm-answer">D</div>
+                    </div>
+                  )}
+                  {intro.type === "normal" && (
+                    <div className="pm-letter-wrap">
+                      <div className="pm-letter-grid">
+                        {[
+                          "A", "B", "C", "D", "E", "F", "G", "H",
+                          "I", "J", "K", "L", "M", "N", "O", "P",
+                          "Q", "R", "S", "T", "UV", "W", "X", "YZ",
+                        ].map((l) => (
+                          <div className="pm-letter-btn" key={l}>
+                            {l}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {intro.type === "number" && (
+                    <div className="pm-keypad-wrap">
+                      <div className="pm-keypad-display">Enter your answer</div>
+                      <div className="pm-keypad-grid">
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+                          <div className="pm-keypad-btn" key={n}>
+                            {n}
+                          </div>
+                        ))}
+                        <div className="pm-keypad-btn pm-clear">C</div>
+                        <div className="pm-keypad-btn">0</div>
+                        <div className="pm-keypad-btn pm-enter">Enter</div>
+                      </div>
+                    </div>
+                  )}
+                  {intro.type === "sequence" && (
+                    <div className="pm-seq-wrap">
+                      <div className="pm-seq-option">A</div>
+                      <div className="pm-seq-option">B</div>
+                      <div className="pm-seq-option">C</div>
+                      <div className="pm-seq-option">D</div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
-          <div className="present-question-box">
-            <p className="present-progress">
-              Q{intro.index + 1} / {intro.total}
-            </p>
-            <h1 className="present-question">{intro.text}</h1>
-          </div>
         </div>
       )}
 

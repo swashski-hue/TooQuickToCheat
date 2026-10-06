@@ -1458,6 +1458,238 @@ body {
   margin: 0;
 }
 
+/* ---- Intro-phase layout: question + answer-style preview side by side ---- */
+
+.present-intro-row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 44px;
+  text-align: center;
+}
+
+.present-main {
+  flex: 1;
+  min-width: 0;
+  max-width: 700px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ---- Abstract "your phone shows" preview (intro phase only) ----
+   Always generic per question type, never the real question/options, so it
+   can render before the answer board even exists on the server. */
+
+.phone-preview-wrap {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.phone-preview-label {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8b84a8;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  margin: 0;
+}
+
+.phone-mockup {
+  width: 170px;
+  height: 340px;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 6px solid var(--pa-navy-dark);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  flex-shrink: 0;
+}
+
+.pm-screen {
+  width: 100%;
+  height: 100%;
+  background: var(--pa-bg);
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-game);
+}
+
+.pm-topbar {
+  background: var(--pa-navy);
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+}
+
+.pm-hud {
+  font-size: 8px;
+}
+
+.pm-hud.pm-score {
+  color: var(--pa-amber);
+}
+
+.pm-hud.pm-timer {
+  color: var(--pa-pink);
+}
+
+.pm-progress {
+  font-size: 7px;
+  color: var(--pa-mint);
+}
+
+.pm-timerbar {
+  height: 5px;
+  background: var(--pa-track);
+  margin: 5px 10px 0;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--pa-navy);
+}
+
+.pm-timerfill {
+  height: 100%;
+  width: 62%;
+  background: var(--pa-pink);
+}
+
+.pm-qpanel {
+  margin: 8px 10px 0;
+  background: #fff;
+  border: 2px solid var(--pa-navy);
+  border-radius: 8px;
+  padding: 7px;
+  box-shadow: 2px 2px 0 var(--pa-navy);
+  text-align: center;
+}
+
+.pm-qtext {
+  font-size: 8px;
+  color: var(--pa-navy);
+}
+
+.pm-answers {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 10px;
+}
+
+.pm-answer {
+  flex: 0 0 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--pa-navy);
+  border-radius: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--pa-navy);
+  background: #fff;
+  box-shadow: 2px 2px 0 var(--pa-navy);
+}
+
+.pm-letter-wrap {
+  flex: 1;
+  padding: 8px 10px;
+  display: flex;
+}
+
+.pm-letter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(6, 1fr);
+  gap: 3px;
+  flex: 1;
+}
+
+.pm-letter-btn {
+  background: #fff;
+  border: 2px solid var(--pa-navy);
+  border-radius: 4px;
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--pa-navy);
+  box-shadow: 1px 1px 0 var(--pa-navy);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pm-keypad-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 10px;
+}
+
+.pm-keypad-display {
+  background: #fff;
+  border: 2px solid var(--pa-navy);
+  border-radius: 6px;
+  padding: 6px;
+  text-align: center;
+  font-size: 8px;
+  color: #8b84a8;
+  box-shadow: 2px 2px 0 var(--pa-navy);
+}
+
+.pm-keypad-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 3px;
+  flex: 1;
+}
+
+.pm-keypad-btn {
+  background: #fff;
+  border: 2px solid var(--pa-navy);
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--pa-navy);
+  box-shadow: 1px 1px 0 var(--pa-navy);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pm-keypad-btn.pm-clear {
+  background: var(--pa-peach);
+}
+
+.pm-keypad-btn.pm-enter {
+  background: var(--pa-mint-btn);
+  font-size: 7px;
+}
+
+.pm-seq-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 10px;
+}
+
+.pm-seq-option {
+  background: #fff;
+  border: 2px solid var(--pa-navy);
+  border-radius: 6px;
+  padding: 6px;
+  text-align: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--pa-navy);
+  box-shadow: 2px 2px 0 var(--pa-navy);
+}
+
 .present-options {
   display: grid;
   grid-template-columns: 1fr 1fr;
