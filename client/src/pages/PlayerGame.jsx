@@ -184,12 +184,15 @@ export default function PlayerGame() {
     return idx === -1 ? null : idx + 1;
   }
 
+  // Deselecting a pick clears it and every pick made after it (not just
+  // that one slot) — changing your mind on an earlier choice invalidates
+  // whatever order you built on top of it.
   function toggleSequenceItem(item) {
     if (myAnswer) return;
     setSequenceOrder((order) => {
       const idx = order.findIndex((it) => it.originalIndex === item.originalIndex);
       if (idx === -1) return [...order, item];
-      return order.filter((_, i) => i !== idx);
+      return order.slice(0, idx);
     });
   }
 
