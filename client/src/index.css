@@ -620,6 +620,13 @@ body {
   font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 
+/* The question panel's offset shadow bleeds a few px below its border, and
+   the reveal message sits flush against it with zero top margin — clear it
+   so the text doesn't look tucked under/overlapping the panel's shadow. */
+.question-panel + .subtitle {
+  margin-top: 14px;
+}
+
 .player-screen .question-text {
   font-size: 1.3rem;
   color: var(--pa-navy);
@@ -738,7 +745,42 @@ body {
 }
 
 .top-bar-score {
+  position: relative;
   color: var(--pa-amber);
+}
+
+.score-delta {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 0.85rem;
+  animation: score-delta-pop 0.9s ease-out forwards;
+}
+
+.score-delta.positive {
+  color: var(--pa-mint);
+}
+
+.score-delta.negative {
+  color: var(--pa-coral);
+}
+
+@keyframes score-delta-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.8);
+  }
+  25% {
+    opacity: 1;
+    transform: translateY(0) scale(1.2);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.9);
+  }
 }
 
 .top-bar-progress {

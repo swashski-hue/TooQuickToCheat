@@ -38,6 +38,7 @@ export default function PlayerGame() {
   const [sequenceOrder, setSequenceOrder] = useState([]); // array of {text, originalIndex}
   const [wideSkipIndex, setWideSkipIndex] = useState(null); // sequence + Go Wide: one item's position is ignored
   const [myScore, setMyScore] = useState(0);
+  const [scoreDelta, setScoreDelta] = useState(null); // transient "+10"/"-5" popup next to the HUD score
   const tickRef = useRef(null);
 
   const myName = location.state?.name || loadPlayerSession(code);
@@ -132,6 +133,23 @@ export default function PlayerGame() {
     tickRef.current = setInterval(() => setSecondsLeft((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(tickRef.current);
   }, [phase]);
+
+  // Fold this question's points into the HUD score only once the host reveals
+  // the answer — not the moment the server confirms it — so a player can't
+  // spot "did I get it right?" early just by watching their own score change.
+  // Shows a brief "+10"/"-5" popup next to the score, then settles into the total.
+  useEffect(() => {
+    if (phase !== "reveal" || !myAnswer) return;
+    const delta = myAnswer.points || 0;
+    if (delta === 0) return;
+    setScoreDelta(delta);
+    const t = setTimeout(() => {
+      setMyScore((s) => s + delta);
+      setScoreDelta(null);
+    }, 900);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, myAnswer]);
 
   function submitResponse(response) {
     if (myAnswer) return;
@@ -258,7 +276,14 @@ export default function PlayerGame() {
       {(phase === "question" || phase === "reveal") && board && (
         <>
           <div className="top-bar">
-            <span className="top-bar-score">{myScore} pts</span>
+            <span className="top-bar-score">
+              {myScore} pts
+              {scoreDelta !== null && (
+                <span className={`score-delta ${scoreDelta < 0 ? "negative" : "positive"}`}>
+                  {scoreDelta > 0 ? `+${scoreDelta}` : scoreDelta}
+                </span>
+              )}
+            </span>
             <span className="top-bar-progress">
               Q{board.index + 1}/{board.total}
             </span>
@@ -291,12 +316,12 @@ export default function PlayerGame() {
             <p className={`subtitle center-text ${myAnswer?.isCorrect ? "correct-text" : "wrong-text"}`}>
               {myAnswer
                 ? myAnswer.isCorrect
-                  ? `Correct! +${myAnswer.points} points${
-                      myAnswer.rank && myAnswer.rank <= 5 ? ` — ${ordinal(myAnswer.rank)} fastest!` : ""
-                    }`
-                  : myAnswer.points !== 0
-                    ? `${myAnswer.points} points`
-                    : "Not quite"
+                  ? `Correct!${myAnswer.rank && myAnswer.rank <= 5 ? ` — ${ordinal(myAnswer.rank)} fastest!` : ""}`
+                  : myAnswer.points < 0
+                    ? "Wrong — that cost you points"
+                    : myAnswer.points > 0
+                      ? "Half points"
+                      : "Not quite"
                 : "Time's up!"}
             </p>
           )}
