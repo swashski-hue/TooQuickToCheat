@@ -179,16 +179,29 @@ export function selectRound(room, roundData, roundType, fastTrack) {
   for (const p of room.players.values()) p.lastAnswer = null;
 }
 
+/** Emoji currently in use by players in this room — used to keep each player's emoji unique. */
+export function takenEmojis(room) {
+  return new Set(Array.from(room.players.values()).map((p) => p.emoji));
+}
+
+/** Adds a player with a unique emoji. Fails if the requested emoji is already taken in this room. */
 export function addPlayer(room, socketId, name, emoji) {
+  const taken = takenEmojis(room);
+  const chosen = PLAYER_EMOJIS.includes(emoji) ? emoji : PLAYER_EMOJIS.find((e) => !taken.has(e));
+  if (!chosen || taken.has(chosen)) {
+    return { ok: false, error: "That emoji is already taken — pick another one" };
+  }
+
   room.players.set(socketId, {
     id: socketId,
     name: name.slice(0, 24),
-    emoji: PLAYER_EMOJIS.includes(emoji) ? emoji : PLAYER_EMOJIS[0],
+    emoji: chosen,
     score: 0,
     lastAnswer: null,
     disconnected: false,
     disconnectTimer: null,
   });
+  return { ok: true };
 }
 
 export function removePlayer(room, socketId) {

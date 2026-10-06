@@ -446,13 +446,23 @@ io.on("connection", (socket) => {
   });
 
   // ----- Player events -----
+  // Validates a room code before the naming/emoji screen, and reports which
+  // emoji are already taken so the picker can grey them out up front.
+  socket.on("player:checkRoom", ({ code }, ack) => {
+    const room = game.getRoom(code);
+    if (!room) return ack?.({ ok: false, error: "Room not found" });
+    if (room.state !== "lobby") return ack?.({ ok: false, error: "Game already started" });
+    ack?.({ ok: true, takenEmojis: Array.from(game.takenEmojis(room)) });
+  });
+
   socket.on("player:join", ({ code, name, emoji }, ack) => {
     const room = game.getRoom(code);
     if (!room) return ack?.({ ok: false, error: "Room not found" });
     if (!name || !name.trim()) return ack?.({ ok: false, error: "Name required" });
     if (room.state !== "lobby") return ack?.({ ok: false, error: "Game already started" });
 
-    game.addPlayer(room, socket.id, name.trim(), emoji);
+    const result = game.addPlayer(room, socket.id, name.trim(), emoji);
+    if (!result.ok) return ack?.(result);
     socket.join(room.code);
     socket.data.role = "player";
     socket.data.roomCode = room.code;

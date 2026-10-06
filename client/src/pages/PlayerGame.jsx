@@ -36,6 +36,7 @@ export default function PlayerGame() {
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [questionExpanded, setQuestionExpanded] = useState(false);
   const [numberInput, setNumberInput] = useState("");
+  const [numberLocked, setNumberLocked] = useState(false); // number: typed value confirmed, Go Wide still changeable before final submit
   const [wideNumber, setWideNumber] = useState(false); // number + Go Wide: accept ±1 for half points
   const [sequenceOrder, setSequenceOrder] = useState([]); // array of {text, originalIndex}
   const [wideSkipIndex, setWideSkipIndex] = useState(null); // sequence + Go Wide: one item's position is ignored
@@ -82,6 +83,7 @@ export default function PlayerGame() {
       setReveal(null);
       setQuestionExpanded(false);
       setNumberInput("");
+      setNumberLocked(false);
       setWideNumber(false);
       setSequenceOrder([]);
       setWideSkipIndex(null);
@@ -164,13 +166,23 @@ export default function PlayerGame() {
   }
 
   function pressDigit(d) {
-    if (myAnswer) return;
+    if (myAnswer || numberLocked) return;
     if (d === "C") return setNumberInput("");
     if (d === "enter") {
       if (numberInput === "") return;
-      return submitResponse({ number: Number(numberInput), wide: wideNumber });
+      return setNumberLocked(true);
     }
     setNumberInput((s) => (s.length >= 12 ? s : s + d));
+  }
+
+  function editNumber() {
+    if (myAnswer) return;
+    setNumberLocked(false);
+  }
+
+  function submitNumber() {
+    if (myAnswer) return;
+    submitResponse({ number: Number(numberInput), wide: wideNumber });
   }
 
   const sequencePool = useMemo(() => {
@@ -349,6 +361,27 @@ export default function PlayerGame() {
             ) : board.type === "number" ? (
               myAnswer && phase === "question" ? (
                 <p className="subtitle center-text">Answer locked in. Waiting for others...</p>
+              ) : numberLocked && phase === "question" ? (
+                <div className="keypad-wrap">
+                  <div className="keypad-display">{numberInput}</div>
+                  {board.roundType === "go_wide" && (
+                    <button
+                      type="button"
+                      className={`btn go-wide-toggle ${wideNumber ? "active" : ""}`}
+                      onClick={() => setWideNumber((w) => !w)}
+                    >
+                      🎯 Go Wide (±1, half points){wideNumber ? " — ON" : ""}
+                    </button>
+                  )}
+                  <div className="keypad-confirm-row">
+                    <button type="button" className="btn btn-link" onClick={editNumber}>
+                      Edit answer
+                    </button>
+                    <button type="button" className="btn btn-primary btn-large" onClick={submitNumber}>
+                      Submit
+                    </button>
+                  </div>
+                </div>
               ) : (
                 <div className="keypad-wrap">
                   {phase === "question" && board.roundType === "go_wide" && (

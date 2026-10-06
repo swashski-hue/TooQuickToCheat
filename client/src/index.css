@@ -736,6 +736,13 @@ body {
   gap: 10px;
 }
 
+.keypad-confirm-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .keypad-btn {
   padding: 18px 0;
   font-size: 1.3rem;
@@ -1192,6 +1199,12 @@ body {
 .emoji-picker-option.selected {
   border-color: var(--yellow);
   background: var(--surface-2);
+}
+
+.emoji-picker-option.taken {
+  opacity: 0.3;
+  cursor: not-allowed;
+  filter: grayscale(1);
 }
 
 /* ---- Round picker (used for round 1 and every round after) ---- */
