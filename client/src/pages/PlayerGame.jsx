@@ -4,7 +4,8 @@ import { socket } from "../lib/socket.js";
 import { SERVER_URL } from "../lib/api.js";
 import { LETTER_TILES, tileLetters } from "../lib/answerLetter.js";
 import { ROUND_TYPE_LABELS } from "../lib/roundTypes.js";
-import { loadPlayerSession, clearPlayerSession } from "../lib/playerSession.js";
+import { loadPlayerSession, loadPlayerEmoji, clearPlayerSession } from "../lib/playerSession.js";
+import { rankColor } from "../lib/rankColor.js";
 
 const KEYPAD_ROWS = [
   ["1", "2", "3"],
@@ -40,6 +41,7 @@ export default function PlayerGame() {
   const tickRef = useRef(null);
 
   const myName = location.state?.name || loadPlayerSession(code);
+  const myEmoji = location.state?.emoji || loadPlayerEmoji(code);
   const initialRoundName = location.state?.roundName;
 
   useEffect(() => {
@@ -308,18 +310,23 @@ export default function PlayerGame() {
 
             {board.type === "multiple_choice" ? (
               <div className="answer-list">
-                {board.options.map((opt, i) => (
-                  <button
-                    className={`answer-row ${isGivenValue(i) ? "chosen" : ""} ${
-                      phase === "reveal" && i === reveal.correctIndex ? "correct" : ""
-                    }`}
-                    key={i}
-                    disabled={phase === "reveal" || (!!myAnswer && !(canAddSecondPick && !isGivenValue(i)))}
-                    onClick={() => (myAnswer ? addSecondPick(i) : submitResponse({ optionIndex: i }))}
-                  >
-                    <span className="option-text">{opt}</span>
-                  </button>
-                ))}
+                {board.options.map((opt, i) => {
+                  const isMine = isGivenValue(i);
+                  const isCorrectOpt = phase === "reveal" && i === reveal.correctIndex;
+                  const isWrongPick = phase === "reveal" && isMine && !isCorrectOpt;
+                  return (
+                    <button
+                      className={`answer-row ${isMine && !isWrongPick ? "chosen" : ""} ${
+                        isWrongPick ? "wrongpick" : ""
+                      } ${isCorrectOpt ? "correct" : ""}`}
+                      key={i}
+                      disabled={phase === "reveal" || (!!myAnswer && !(canAddSecondPick && !isMine))}
+                      onClick={() => (myAnswer ? addSecondPick(i) : submitResponse({ optionIndex: i }))}
+                    >
+                      <span className="option-text">{opt}</span>
+                    </button>
+                  );
+                })}
               </div>
             ) : board.type === "normal" ? (
               <div className="letter-grid">
@@ -327,9 +334,12 @@ export default function PlayerGame() {
                   const letters = tileLetters(tile);
                   const isChosen = letters.some((l) => isGivenValue(l));
                   const isCorrectTile = phase === "reveal" && letters.includes(reveal.correctLetter);
+                  const isWrongPick = phase === "reveal" && isChosen && !isCorrectTile;
                   return (
                     <button
-                      className={`letter-btn ${isChosen ? "chosen" : ""} ${isCorrectTile ? "correct" : ""}`}
+                      className={`letter-btn ${isChosen && !isWrongPick ? "chosen" : ""} ${
+                        isWrongPick ? "wrongpick" : ""
+                      } ${isCorrectTile ? "correct" : ""}`}
                       key={tile}
                       disabled={phase === "reveal" || (!!myAnswer && !(canAddSecondPick && !isChosen))}
                       onClick={() => (myAnswer ? addSecondPick(letters[0]) : submitResponse({ letter: letters[0] }))}
@@ -458,7 +468,12 @@ export default function PlayerGame() {
           )}
           <ol className="leaderboard">
             {standings.slice(0, 5).map((p, i) => (
-              <li key={p.id} className={p.name === myName ? "me" : ""}>
+              <li
+                key={p.id}
+                className={p.name === myName ? "me" : ""}
+                style={{ background: rankColor(i, standings.length) }}
+              >
+                {p.name === myName && <span className="you-tag">YOU</span>}
                 <span className="rank">#{i + 1}</span> {p.emoji} {p.name} <span className="score">{p.score}</span>
               </li>
             ))}
@@ -479,7 +494,12 @@ export default function PlayerGame() {
           )}
           <ol className="leaderboard">
             {standings.map((p, i) => (
-              <li key={p.id} className={p.name === myName ? "me" : ""}>
+              <li
+                key={p.id}
+                className={p.name === myName ? "me" : ""}
+                style={{ background: rankColor(i, standings.length) }}
+              >
+                {p.name === myName && <span className="you-tag">YOU</span>}
                 <span className="rank">#{i + 1}</span> {p.emoji} {p.name} <span className="score">{p.score}</span>
               </li>
             ))}
@@ -487,6 +507,13 @@ export default function PlayerGame() {
           <button className="btn btn-primary" onClick={() => navigate("/join")}>
             Join another quiz
           </button>
+        </div>
+      )}
+
+      {myName && (
+        <div className="player-footerbar">
+          <span className="player-footerbar-emoji">{myEmoji || myStanding?.emoji || "🎮"}</span>
+          {myName}
         </div>
       )}
     </div>

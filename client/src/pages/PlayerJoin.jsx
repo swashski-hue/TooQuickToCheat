@@ -60,8 +60,8 @@ export default function PlayerJoin() {
     socket.emit("player:join", { code: roomCode, name, emoji }, (res) => {
       setJoining(false);
       if (res.ok) {
-        savePlayerSession(roomCode, name);
-        navigate(`/play/${roomCode}`, { state: { name, roundName: res.roundName } });
+        savePlayerSession(roomCode, name, emoji);
+        navigate(`/play/${roomCode}`, { state: { name, emoji, roundName: res.roundName } });
       } else {
         setError(res.error);
         // Someone may have just taken this emoji — refresh the taken list.

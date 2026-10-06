@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { socket } from "../lib/socket.js";
 import { SERVER_URL } from "../lib/api.js";
 import { ROUND_TYPE_LABELS, FAST_TRACK_LABEL } from "../lib/roundTypes.js";
+import { rankColor } from "../lib/rankColor.js";
 
 export default function PresentationScreen() {
   const { code } = useParams();
@@ -302,7 +303,11 @@ export default function PresentationScreen() {
           <h1 className="present-question">{phase === "ended" ? "🏆 Final Results" : "Leaderboard"}</h1>
           <ol className="present-leaderboard">
             {standings.map((p, i) => (
-              <li key={p.id} className={i < 3 ? `podium podium-${i + 1}` : ""}>
+              <li
+                key={p.id}
+                className={i < 3 ? `podium podium-${i + 1}` : ""}
+                style={{ background: rankColor(i, standings.length) }}
+              >
                 <span className="rank">#{i + 1}</span> {p.emoji} {p.name} <span className="score">{p.score}</span>
               </li>
             ))}
