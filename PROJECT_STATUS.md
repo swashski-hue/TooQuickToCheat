@@ -63,8 +63,13 @@ explicitly in this file until it's confirmed.
 - **No automated test suite** — see `CLAUDE.md`'s "Testing convention" for
   the isolated-script pattern used instead.
 - **No Quiz Bank export/import** — no way to back up or share rounds as a file.
-- **Orphaned uploads** — deleting a question/round doesn't delete its
-  uploaded picture from `server/data/uploads/`.
+- **Orphaned uploads** — deleting a question/round, or just hitting "Remove
+  picture" on one (`RoundEditor.jsx`), only clears the `pictureUrl`
+  reference — the file stays in `server/data/uploads/` forever. No cleanup
+  mechanism, so the 1GB disk (`render.yaml`) only ever fills up. Not urgent
+  at current usage, but worth a sweep (e.g. delete-on-replace, or a
+  garbage-collect pass comparing bank.json's referenced URLs against the
+  uploads folder) before it becomes a real problem.
 - **Legacy rounds have `ownerId: null`** — the two original sample rounds
   predate accounts; can't be made private without recreating them.
 - **Game state is in-memory only** — a server crash/redeploy loses any
