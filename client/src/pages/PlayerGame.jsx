@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { socket } from "../lib/socket.js";
 import { SERVER_URL } from "../lib/api.js";
@@ -175,20 +175,22 @@ export default function PlayerGame() {
     if (myAnswer) socket.emit("player:updateGoWide", { code, wide: next });
   }
 
-  const sequencePool = useMemo(() => {
-    if (!board?.items) return [];
-    const chosen = new Set(sequenceOrder.map((it) => it.originalIndex));
-    return board.items.filter((it) => !chosen.has(it.originalIndex));
-  }, [board, sequenceOrder]);
-
-  function pickSequenceItem(item) {
-    if (myAnswer) return;
-    setSequenceOrder((order) => [...order, item]);
+  // Position (1-based) this item currently holds in the chosen order, or
+  // null if it hasn't been tapped yet. Items stay put in their original
+  // spot — only the overlaid number changes — so tapping never reflows
+  // the list mid-answer.
+  function sequencePosition(originalIndex) {
+    const idx = sequenceOrder.findIndex((it) => it.originalIndex === originalIndex);
+    return idx === -1 ? null : idx + 1;
   }
 
-  function undoSequenceItem(index) {
+  function toggleSequenceItem(item) {
     if (myAnswer) return;
-    setSequenceOrder((order) => order.filter((_, i) => i !== index));
+    setSequenceOrder((order) => {
+      const idx = order.findIndex((it) => it.originalIndex === item.originalIndex);
+      if (idx === -1) return [...order, item];
+      return order.filter((_, i) => i !== idx);
+    });
   }
 
   function toggleWildcard(originalIndex) {
@@ -397,57 +399,44 @@ export default function PlayerGame() {
                 </div>
               ) : (
                 <div className="sequence-wrap">
-                  <p className="subtitle">Tap items in the correct order:</p>
+                  <p className="subtitle">Tap items in the correct order, then lock in:</p>
                   {board.roundType === "go_wide" && (
                     <p className="subtitle">
                       Tap ⚡ on one item to make it a wildcard — its position won't count against you (half points).
                     </p>
                   )}
-                  <div className="sequence-chosen">
-                    {sequenceOrder.length === 0 && <p className="subtitle">Nothing picked yet</p>}
-                    {sequenceOrder.map((item, i) => (
-                      <div className="sequence-chip-row" key={item.originalIndex}>
-                        <button className="sequence-chip" onClick={() => undoSequenceItem(i)}>
-                          <span className="sequence-chip-num">{i + 1}</span>
-                          <span className="sequence-chip-text">{item.text}</span>
-                          <span className="sequence-chip-remove">✕</span>
-                        </button>
-                        {board.roundType === "go_wide" && (
+                  <div className="sequence-options">
+                    {board.items.map((item) => {
+                      const position = sequencePosition(item.originalIndex);
+                      return (
+                        <div className="sequence-option-row" key={item.originalIndex}>
                           <button
                             type="button"
-                            className={`btn btn-small go-wide-wildcard-btn ${wideSkipIndex === item.originalIndex ? "active" : ""}`}
-                            onClick={() => toggleWildcard(item.originalIndex)}
+                            className={`sequence-option ${position ? "chosen" : ""}`}
+                            onClick={() => toggleSequenceItem(item)}
                           >
-                            ⚡
+                            {position && <span className="sequence-option-badge">{position}</span>}
+                            <span className="sequence-option-text">{item.text}</span>
                           </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="sequence-pool">
-                    {sequencePool.map((item) => (
-                      <div className="sequence-pool-item" key={item.originalIndex}>
-                        <button className="btn answer-btn" onClick={() => pickSequenceItem(item)}>
-                          {item.text}
-                        </button>
-                        {board.roundType === "go_wide" && (
-                          <button
-                            type="button"
-                            className={`btn btn-small go-wide-wildcard-btn ${wideSkipIndex === item.originalIndex ? "active" : ""}`}
-                            onClick={() => toggleWildcard(item.originalIndex)}
-                          >
-                            ⚡
-                          </button>
-                        )}
-                      </div>
-                    ))}
+                          {board.roundType === "go_wide" && (
+                            <button
+                              type="button"
+                              className={`btn btn-small go-wide-wildcard-btn ${wideSkipIndex === item.originalIndex ? "active" : ""}`}
+                              onClick={() => toggleWildcard(item.originalIndex)}
+                            >
+                              ⚡
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                   <button
                     className="btn btn-primary btn-large"
                     onClick={submitSequence}
                     disabled={sequenceOrder.length !== board.items.length}
                   >
-                    Submit order
+                    Lock in
                   </button>
                 </div>
               )
