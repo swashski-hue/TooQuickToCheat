@@ -66,11 +66,6 @@ something new, flag it explicitly in this file until it's confirmed.
   during a live question lands back on "lobby" until the next phase-change
   event, instead of showing the current question. Self-heals on the host's
   next action; lower priority than the host-side version was.
-- **No automated test suite** — see `CLAUDE.md`'s "Testing convention" for
-  the isolated-script pattern used instead.
-- **No Quiz Bank export/import** — no way to back up or share rounds as a file.
-- **Legacy rounds have `ownerId: null`** — the two original sample rounds
-  predate accounts; can't be made private without recreating them.
 - **Game state is in-memory only** — a server crash/redeploy loses any
   in-progress game (not the Quiz Bank, that's on disk). Acceptable for a
   hobby project; would need Redis or similar to fix properly.
