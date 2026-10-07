@@ -23,7 +23,7 @@
   /* "Pastel arcade" palette — player screen + presentation (big-screen) view only.
      Scoped under .player-screen / .presentation-screen, never applied globally,
      so the host/admin screens keep the SNES-shell look above untouched. */
-  --font-game: "Fredoka One", "Fredoka", cursive, sans-serif;
+  --font-game: "Comic Neue", "Comic Sans MS", cursive, sans-serif;
   --pa-bg: #e9ddf8;
   --pa-navy: #2d2a3d;
   --pa-navy-dark: #17151f;
