@@ -898,7 +898,7 @@ body:has(.player-screen) {
   align-items: center;
   justify-content: center;
   width: 100%;
-  flex: 1;
+  flex: 0 1 88px;
   min-height: 44px;
   padding: clamp(6px, 10cqh, 20px) 16px;
   border-radius: 14px;
@@ -1011,11 +1011,6 @@ body:has(.player-screen) {
   min-height: 0;
 }
 
-.sequence-chip-row {
-  flex: 1;
-  min-height: 0;
-}
-
 .sequence-chip {
   container-type: size;
   display: flex;
@@ -1070,9 +1065,9 @@ body:has(.player-screen) {
 
 .sequence-option-row {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 8px;
-  flex: 1;
+  flex: 0 1 72px;
   min-height: 0;
 }
 
@@ -1136,6 +1131,8 @@ body:has(.player-screen) {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 0 1 72px;
+  min-height: 44px;
 }
 
 .sequence-chip-row .sequence-chip {
