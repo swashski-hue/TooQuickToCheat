@@ -279,16 +279,19 @@ body {
 .letter-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(6, 1fr);
   gap: 8px;
   width: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .letter-btn {
-  aspect-ratio: 1;
+  container-type: size;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
+  font-size: clamp(0.75rem, 45cqh, 1.2rem);
   font-weight: 700;
   border-radius: 10px;
   border: 3px solid var(--pa-navy);
@@ -591,24 +594,41 @@ body {
 
 /* ---- Mobile-first player screen: "pastel arcade" design system ---- */
 
+/* The player screen must never scroll as a page — mobile browser chrome
+   (address bar show/hide, on-screen keyboard) constantly resizes the
+   viewport, and any reliance on document-level scroll either leaves a gap
+   or lets the page rubber-band. Pin it to the viewport with `fixed` (so its
+   box size comes straight from the visual viewport, not from an ancestor's
+   percentage/vh chain) and let only the inner content regions scroll. */
+body:has(.player-screen) {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 .player-screen {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
   width: 100%;
   max-width: 480px;
-  margin: 0 auto;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background: var(--pa-bg);
   color: var(--pa-navy);
   font-family: var(--font-game);
 }
 
 .player-screen .screen.center {
-  min-height: auto;
+  min-height: 0;
   flex: 1;
   width: 100%;
   max-width: none;
   padding: 24px 20px;
+  overflow-y: auto;
 }
 
 .player-screen .title {
@@ -733,6 +753,7 @@ body {
 }
 
 .top-bar {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -794,6 +815,7 @@ body {
 }
 
 .timer-track {
+  flex-shrink: 0;
   height: 8px;
   background: var(--pa-track);
   border: 2px solid var(--pa-navy);
@@ -809,6 +831,7 @@ body {
 }
 
 .question-panel {
+  flex-shrink: 0;
   display: block;
   width: 100%;
   background: #fff;
@@ -850,6 +873,8 @@ body {
 
 .answer-area {
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -863,15 +888,19 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  flex: 1;
+  min-height: 0;
 }
 
 .answer-row {
+  container-type: size;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 88px;
-  padding: 20px 16px;
+  flex: 1;
+  min-height: 44px;
+  padding: clamp(6px, 10cqh, 20px) 16px;
   border-radius: 14px;
   border: 3px solid var(--pa-navy);
   background: #fff;
@@ -891,7 +920,7 @@ body {
   flex: 1;
   text-transform: uppercase;
   font-weight: 700;
-  font-size: 1.3rem;
+  font-size: clamp(0.85rem, 22cqh, 1.6rem);
   letter-spacing: 0.02em;
 }
 
@@ -899,9 +928,16 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+
+.keypad-wrap > p {
+  flex-shrink: 0;
 }
 
 .keypad-display {
+  flex-shrink: 0;
   background: #fff;
   border: 3px solid var(--pa-navy);
   border-radius: 12px;
@@ -916,12 +952,16 @@ body {
 .keypad-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(4, 1fr);
   gap: 10px;
+  flex: 1;
+  min-height: 0;
 }
 
 .keypad-btn {
-  padding: 18px 0;
-  font-size: 1.3rem;
+  container-type: size;
+  padding: clamp(4px, 15cqh, 18px) 0;
+  font-size: clamp(0.8rem, 30cqh, 1.3rem);
   font-weight: 700;
   border-radius: 10px;
   border: 3px solid var(--pa-navy);
@@ -954,22 +994,37 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  flex: 1;
+  min-height: 0;
+}
+
+.sequence-wrap > p,
+.sequence-wrap > .btn-large {
+  flex-shrink: 0;
 }
 
 .sequence-chosen {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-height: 48px;
+  flex: 1;
+  min-height: 0;
+}
+
+.sequence-chip-row {
+  flex: 1;
+  min-height: 0;
 }
 
 .sequence-chip {
+  container-type: size;
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
-  min-height: 72px;
-  padding: 14px 16px;
+  height: 100%;
+  min-height: 44px;
+  padding: clamp(6px, 12cqh, 14px) 16px;
   border-radius: 14px;
   border: 3px solid var(--pa-navy);
   background: #fff;
@@ -996,7 +1051,7 @@ body {
   flex: 1;
   text-transform: uppercase;
   font-weight: 700;
-  font-size: 1.15rem;
+  font-size: clamp(0.8rem, 30cqh, 1.15rem);
   letter-spacing: 0.02em;
 }
 
@@ -1009,22 +1064,27 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  flex: 1;
+  min-height: 0;
 }
 
 .sequence-option-row {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1;
+  min-height: 0;
 }
 
 .sequence-option {
+  container-type: size;
   position: relative;
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 72px;
-  padding: 14px 16px;
+  min-height: 44px;
+  padding: clamp(6px, 12cqh, 14px) 16px;
   border-radius: 14px;
   border: 3px solid var(--pa-navy);
   background: #fff;
@@ -1051,7 +1111,7 @@ body {
 .sequence-option-text {
   text-transform: uppercase;
   font-weight: 700;
-  font-size: 1.15rem;
+  font-size: clamp(0.8rem, 30cqh, 1.15rem);
   letter-spacing: 0.02em;
 }
 
@@ -1083,6 +1143,7 @@ body {
 }
 
 .go-wide-toggle {
+  flex-shrink: 0;
   width: 100%;
   margin-bottom: 10px;
   border: 3px solid var(--pa-navy);
@@ -1123,6 +1184,7 @@ body {
 }
 
 .round-badge {
+  flex-shrink: 0;
   align-self: center;
   margin: 12px auto 0;
   background: var(--pa-amber);
