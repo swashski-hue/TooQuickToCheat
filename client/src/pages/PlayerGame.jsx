@@ -262,14 +262,14 @@ export default function PlayerGame() {
       )}
 
       {phase === "intro" && intro && (
-        <div className="screen center">
+        <div className={`intro-screen ${pictureUrl ? "has-picture" : ""}`}>
           {pictureUrl && (
-            <div className="picture-display">
+            <div className="intro-picture">
               <img src={`${SERVER_URL}${pictureUrl}`} alt="" />
             </div>
           )}
-          <h2 className="question-text">{intro.text}</h2>
-          <p className="subtitle">Get ready — the answer board is coming up...</p>
+          <h2 className="intro-question-text">{intro.text}</h2>
+          <p className="subtitle intro-subtitle">Get ready — the answer board is coming up...</p>
         </div>
       )}
 

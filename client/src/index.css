@@ -631,6 +631,64 @@ body:has(.player-screen) {
   overflow-y: auto;
 }
 
+/* Question-intro screen: the question itself is the whole screen — no
+   answer board to balance against yet, so give it the space. A picture
+   question flips priority: the picture dominates and the question text
+   drops down to a supporting caption underneath it. */
+.intro-screen {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px 20px;
+  overflow-y: auto;
+  gap: 12px;
+}
+
+.intro-question-text {
+  flex-shrink: 0;
+  margin: 0;
+  font-weight: 700;
+  color: var(--pa-navy);
+  line-height: 1.2;
+  font-size: clamp(1.6rem, 9vw, 2.6rem);
+}
+
+.intro-subtitle {
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.intro-screen.has-picture {
+  justify-content: flex-start;
+}
+
+.intro-picture {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+}
+
+.intro-picture img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border: 3px solid var(--pa-navy);
+  border-radius: 14px;
+  box-shadow: 4px 4px 0 var(--pa-navy);
+  background: #fff;
+}
+
+.intro-screen.has-picture .intro-question-text {
+  flex-shrink: 0;
+  margin-top: 8px;
+  font-size: clamp(1.1rem, 5.5vw, 1.5rem);
+}
+
 .player-screen .title {
   color: var(--pa-navy);
 }
