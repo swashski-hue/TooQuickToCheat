@@ -40,6 +40,7 @@ export default function PlayerGame() {
   const [myScore, setMyScore] = useState(0);
   const [scoreDelta, setScoreDelta] = useState(null); // transient "+10"/"-5" popup next to the HUD score
   const tickRef = useRef(null);
+  const introRef = useRef(null);
 
   const myName = location.state?.name || loadPlayerSession(code);
   const myEmoji = location.state?.emoji || loadPlayerEmoji(code);
@@ -150,6 +151,30 @@ export default function PlayerGame() {
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, myAnswer]);
+
+  // Size the text-only intro question off the device's actual available
+  // height rather than a CSS unit (cqh/vw) — those depend on browser/engine
+  // support we can't verify across every player's phone, where measuring
+  // clientHeight directly and setting a CSS var always works. Picture
+  // questions don't need this: the image already flexes to fill the space.
+  useEffect(() => {
+    if (phase !== "intro" || !intro || intro.pictureUrl) return;
+    const el = introRef.current;
+    if (!el) return;
+    function resize() {
+      const h = el.clientHeight;
+      const size = Math.min(54.4, Math.max(28.8, h * 0.075));
+      el.style.setProperty("--intro-font-size", `${size}px`);
+    }
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(el);
+    window.addEventListener("resize", resize);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", resize);
+    };
+  }, [phase, intro]);
 
   function submitResponse(response) {
     if (myAnswer) return;
@@ -262,7 +287,7 @@ export default function PlayerGame() {
       )}
 
       {phase === "intro" && intro && (
-        <div className={`intro-screen ${pictureUrl ? "has-picture" : ""}`}>
+        <div ref={introRef} className={`intro-screen ${pictureUrl ? "has-picture" : ""}`}>
           {pictureUrl && (
             <div className="intro-picture">
               <img src={`${SERVER_URL}${pictureUrl}`} alt="" />

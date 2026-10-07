@@ -636,7 +636,6 @@ body:has(.player-screen) {
    question flips priority: the picture dominates and the question text
    drops down to a supporting caption underneath it. */
 .intro-screen {
-  container-type: size;
   flex: 1;
   min-height: 0;
   display: flex;
@@ -655,12 +654,11 @@ body:has(.player-screen) {
   font-weight: 700;
   color: var(--pa-navy);
   line-height: 1.2;
-  /* Scale with the screen's available height, not its width — a tall phone
-     has a lot more vertical room than a 2-line sentence needs at a
-     width-driven size, which left the text looking small and adrift in
-     empty space instead of "filling the screen" the way the picture
-     variant (which flexes to the full available height) does. */
-  font-size: clamp(1.8rem, 7.5cqh, 3.4rem);
+  /* Set by PlayerGame.jsx from the intro screen's actual measured height —
+     a JS measurement rather than a cqh/vw CSS unit, since the picture
+     variant (height-driven, flex:1) kept looking bigger than this one on
+     real devices and cqh support couldn't be verified across them. */
+  font-size: var(--intro-font-size, 2.3rem);
 }
 
 .intro-subtitle {
