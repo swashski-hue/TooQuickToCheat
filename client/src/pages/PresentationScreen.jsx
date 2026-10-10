@@ -153,6 +153,7 @@ export default function PresentationScreen() {
   }
 
   const pictureUrl = intro?.pictureUrl || board?.pictureUrl;
+  const isSplitBoardType = board?.type === "multiple_choice" || board?.type === "sequence";
 
   const correctResults = reveal ? reveal.results.filter((r) => r.answer?.isCorrect) : [];
   const fastest = reveal ? getFastestCorrect(reveal.results) : [];
@@ -202,17 +203,24 @@ export default function PresentationScreen() {
                 <p className="present-type-hint">{QUESTION_TYPE_META[intro.type].hint}</p>
               </>
             )}
-            {pictureUrl && (
-              <div className="picture-display present-picture">
-                <img src={`${SERVER_URL}${pictureUrl}`} alt="" />
+            {pictureUrl ? (
+              <div className="present-hero">
+                <p className="present-progress">
+                  Q{intro.index + 1} / {intro.total}
+                </p>
+                <div className="present-hero-pic">
+                  <img src={`${SERVER_URL}${pictureUrl}`} alt="" />
+                </div>
+                <p className="present-hero-caption">{intro.text}</p>
+              </div>
+            ) : (
+              <div className="present-question-box">
+                <p className="present-progress">
+                  Q{intro.index + 1} / {intro.total}
+                </p>
+                <h1 className="present-question">{intro.text}</h1>
               </div>
             )}
-            <div className="present-question-box">
-              <p className="present-progress">
-                Q{intro.index + 1} / {intro.total}
-              </p>
-              <h1 className="present-question">{intro.text}</h1>
-            </div>
           </div>
 
           {/* Abstract, type-generic preview of what the player's phone shows —
@@ -290,7 +298,7 @@ export default function PresentationScreen() {
       )}
 
       {phase === "question" && board && (
-        <div className="present-center">
+        <div className={`present-center ${pictureUrl && isSplitBoardType ? "present-live-split" : ""}`}>
           {QUESTION_TYPE_META[board.type] && (
             <>
               <p className="present-type-label">{QUESTION_TYPE_META[board.type].label}</p>
@@ -307,32 +315,60 @@ export default function PresentationScreen() {
             <p className="present-label">{ROUND_TYPE_LABELS[board.roundType]} Round</p>
           )}
           {board.fastTrack && <p className="present-label fast-track-label">{FAST_TRACK_LABEL} active</p>}
-          {pictureUrl && (
-            <div className="picture-display present-picture">
-              <img src={`${SERVER_URL}${pictureUrl}`} alt="" />
-            </div>
-          )}
-          <div className="present-question-box">
-            <h1 className="present-question">{board.text}</h1>
-          </div>
 
-          {board.type === "multiple_choice" && (
-            <div className="present-options">
-              {board.options.map((opt, i) => (
-                <div className="present-option" key={i}>
-                  {opt}
-                </div>
-              ))}
+          {pictureUrl && isSplitBoardType ? (
+            <div className="present-split">
+              <div className="present-split-pic">
+                <img src={`${SERVER_URL}${pictureUrl}`} alt="" />
+                <p className="present-split-caption">{board.text}</p>
+              </div>
+              <div className="present-split-options">
+                {board.type === "multiple_choice" &&
+                  board.options.map((opt, i) => (
+                    <div className="present-option" key={i}>
+                      {opt}
+                    </div>
+                  ))}
+                {board.type === "sequence" &&
+                  board.items.map((item) => (
+                    <div className="present-option" key={item.originalIndex}>
+                      {item.text}
+                    </div>
+                  ))}
+              </div>
             </div>
-          )}
-          {board.type === "sequence" && (
-            <div className="present-options">
-              {board.items.map((item) => (
-                <div className="present-option" key={item.originalIndex}>
-                  {item.text}
-                </div>
-              ))}
+          ) : pictureUrl ? (
+            <div className="present-hero">
+              <div className="present-hero-pic">
+                <img src={`${SERVER_URL}${pictureUrl}`} alt="" />
+              </div>
+              <p className="present-hero-caption">{board.text}</p>
             </div>
+          ) : (
+            <>
+              <div className="present-question-box">
+                <h1 className="present-question">{board.text}</h1>
+              </div>
+
+              {board.type === "multiple_choice" && (
+                <div className="present-options">
+                  {board.options.map((opt, i) => (
+                    <div className="present-option" key={i}>
+                      {opt}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {board.type === "sequence" && (
+                <div className="present-options">
+                  {board.items.map((item) => (
+                    <div className="present-option" key={item.originalIndex}>
+                      {item.text}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
 
           <p className="present-answered">

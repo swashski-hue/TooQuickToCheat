@@ -58,6 +58,15 @@ other round still references the same upload. *(Logic only, unverified via
 the Quiz Bank UI — covered by a throwaway `bankStore.js` script, not
 confirmed end-to-end yet.)*
 
+**Host reveal screen rework**: host's reveal-stage content now mirrors
+Presentation Screen — correct-count stats, top-5 fastest-correct (no 3s
+suspense delay, host needs to read them out loud in sync with the big
+screen), and a per-player "who answered what" breakdown. The `fastest`
+sort/slice logic was extracted from `PresentationScreen.jsx` into a shared
+helper rather than duplicated. Round-ended state ("Round over!" + "Start
+Next Round") also got a much harder-to-miss treatment on the host screen
+specifically.
+
 All of the above is live-verified either in-browser this session or
 directly by the user on a real device — nothing in this list is "logic
 only, unverified" at this point except where flagged. If that changes for
@@ -66,42 +75,17 @@ something new, flag it explicitly in this file until it's confirmed.
 ## Known gaps (not yet fixed)
 
 - **Game state is in-memory only** — a server crash/redeploy loses any
-  in-progress game (not the Quiz Bank, that's on disk). Ranked #7 in
+  in-progress game (not the Quiz Bank, that's on disk). Ranked #3 in
   "Next up" below.
 
 ## Next up
 
 Ranked by effort × value (discovery + ranking session, 2026-10-10) — value
-rated by the user, effort estimated against the current code. Items 1–3
-are really one chunk of host-reveal-screen work (#2/#3 build on #1's
-surface) and are the current priority.
+rated by the user, effort estimated against the current code. The
+host-reveal-screen chunk (round-ended state, fastest-correct, full reveal
+rework) is done — see "Shipped" above — so this list has moved up.
 
-1. **Round-ended state, more prominent on host** *(High value, S effort)*
-   — the "Round over!" + "Start Next Round" leaderboard state already
-   exists for all three screens (`phase === "leaderboard" && !hasMore"`) —
-   it just needs a much harder-to-miss treatment on the host screen
-   specifically (host already sees the running order, so no new
-   round-gap screen needed there; players/presentation keep their
-   existing leaderboard-as-gap screen).
-2. **Fastest-correct on host, no delay** *(High value, S effort)* — host
-   sees the top 5 fastest-correct (not just 1) immediately on reveal — no
-   3s suspense delay like Presentation Screen has, since the host needs
-   to read them out loud in sync with what's about to appear on the big
-   screen. Needs the `fastest` sort/slice logic in `PresentationScreen.jsx`
-   extracted to a shared helper rather than duplicated. Depends on #3's
-   surface existing.
-3. **Host reveal screen rework** *(High value, M effort)* — on reveal,
-   replace the host's main-stage content with a results view — mirrors
-   what Presentation Screen shows (correct-count stats, top-5
-   fastest-correct list), since the data already arrives in the
-   `game:reveal` payload (`gameManager.js`'s `results`, with
-   `lastAnswer.{isCorrect,rank,elapsedMs}` per player) and just isn't
-   rendered on the host side yet (`HostRoom.jsx`'s reveal branch). No
-   server changes needed. Per-player "who answered what" breakdown also
-   goes here.
-4. ~~Reload mid-question fix (player/presentation)~~ — shipped, see
-   "Resilience" above.
-5. **Audio — presentation screen only** *(High value, M effort)* — a
+1. **Audio — presentation screen only** *(High value, M effort)* — a
    question-timer tick/countdown sound and a sting for the
    fastest-answerer reveal, played from Presentation Screen only
    (host/player stay silent — the room hears it together off the big
@@ -110,27 +94,27 @@ surface) and are the current priority.
    Sound asset selection still TBD; scope this first pass as wiring the
    trigger mechanism (phase/event → playback) cleanly, swap in real
    sounds once that's proven.
-6. **Pictures as hero element** *(High value, M effort)* — on both the
+2. **Pictures as hero element** *(High value, M effort)* — on both the
    intro screen and the live question screen, the picture becomes the
    dominant visual element (question text shrinks to a caption-style
    strip), replacing today's image-above-text stacked layout
    (`.picture-display` in both `HostRoom.jsx` and `PresentationScreen.jsx`).
    Needs a couple of quick visual iterations to land on — not fully
    nailed down until seen live.
-7. **Persistence (Redis or similar for game state)** *(High value, L
+3. **Persistence (Redis or similar for game state)** *(High value, L
    effort)* — known gap above; infra work (new store + deploy changes),
    not a UI task.
-8. **Player "see question" interaction rework** *(High value, L effort)*
+4. **Player "see question" interaction rework** *(High value, L effort)*
    — rework how "see question" (bringing the picture into view) works on
-   the player app, separate from the hero-picture treatment in #6. Largest
+   the player app, separate from the hero-picture treatment in #2. Largest
    unknown on the list: direction isn't decided yet, so this needs its own
    discovery pass before it's buildable.
-9. **Timer bar** *(Medium value, S/M effort)* — add a draining bar across
+5. **Timer bar** *(Medium value, S/M effort)* — add a draining bar across
    the screen on both Presentation Screen and the host screen, alongside
    (not replacing) the existing numeric countdown.
-10. **Player-side question display rework** *(Medium value, L effort)* —
+6. **Player-side question display rework** *(Medium value, L effort)* —
     current player-side question display may need to change — specifics
     TBD, needs a discovery pass.
-11. **Expanding the full question** *(Medium value, L effort)* — some way
+7. **Expanding the full question** *(Medium value, L effort)* — some way
     for a question to be shown "expanded"/full-size — mechanism and
     trigger entirely undefined, needs a discovery pass.
