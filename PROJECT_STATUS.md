@@ -104,6 +104,24 @@ directly by the user on a real device — nothing in this list is "logic
 only, unverified" at this point except where flagged. If that changes for
 something new, flag it explicitly in this file until it's confirmed.
 
+**Timer bar** (2026-10-10): the numeric countdown on both the host screen
+and Presentation Screen is now a merged pill+bar (`.timer-badge` /
+`.present-timer`) whose fill drains as `secondsLeft` counts down, matching
+the bar already on the player screen. Host drains right-to-left; the
+Presentation Screen version was widened to span most of the row (almost up
+to the question-number box) and drains left-to-right per the user's
+preference.
+
+**Presentation Screen audio — in progress** (2026-10-10): trigger wiring is
+done and live — `client/src/lib/presentationAudio.js`, a user-gesture
+"🔊 Enable sound" button, a real tick sample for the final 5 seconds of the
+countdown, and a per-player-emoji sting on the fastest-answerer reveal.
+8 of the 16 emojis now play a real (or deliberate stand-in) sample sourced
+from Mixkit: lion, tiger, dog, cat, monkey, owl, unicorn (stand-in: fairy
+sparkle), octopus (stand-in: water bubble). The remaining 8 still fall back
+to a synthesized placeholder tone — see "Next up" below to finish sourcing
+those.
+
 ## Known gaps (not yet fixed)
 
 - **Game state is in-memory only** — a server crash/redeploy loses any
@@ -114,26 +132,30 @@ something new, flag it explicitly in this file until it's confirmed.
 
 Ranked by effort × value (discovery + ranking session, 2026-10-10) — value
 rated by the user, effort estimated against the current code. The
-host-reveal-screen chunk, pictures-as-hero, and the player question
-full-screen overlay are all done — see "Shipped" above — so this list has
-moved up and dropped the two items that overlay rework resolved.
+host-reveal-screen chunk, pictures-as-hero, the player question
+full-screen overlay, and the timer bar are all done — see "Shipped"
+above.
 
-1. **Audio — presentation screen only** *(High value, M effort)* — a
-   question-timer tick/countdown sound and a sting for the
-   fastest-answerer reveal, played from Presentation Screen only
-   (host/player stay silent — the room hears it together off the big
-   screen/speakers). No mute control needed on host for now. Needs a
-   user-gesture-unlock pattern to get past browser autoplay restrictions.
-   Sound asset selection still TBD; scope this first pass as wiring the
-   trigger mechanism (phase/event → playback) cleanly, swap in real
-   sounds once that's proven.
+1. **Finish sourcing fastest-answer emoji sounds** *(low effort, just
+   asset-hunting)* — 8 of 16 emojis in
+   `client/src/lib/presentationAudio.js`'s `EMOJI_SOUND_FILES` still play a
+   synthesized placeholder tone instead of a real sample:
+   - 🦊 fox, 🐸 frog, 🐰 rabbit, 🐹 hamster — candidates found on
+     freesound.org (CC0), but all need trimming to a short clip before use
+     (freesound downloads also need a free account).
+   - 🦀 crab — stand-in found (a finger-snap, CC0 on freesound.org),
+     needs downloading/trimming.
+   - 🐼 panda, 🐨 koala — no usable real recording found on Mixkit or
+     freesound; need a stand-in decision (e.g. reuse another animal's
+     sample, or something unrelated entirely).
+   - 🤖 robot — intentionally left synthesized; a clean beep already
+     suits a robot, no real asset needed.
+   Once files are in `client/public/sounds/`, wiring a new emoji into
+   `EMOJI_SOUND_FILES` is a one-line change.
 2. **Persistence (Redis or similar for game state)** *(High value, L
    effort)* — known gap above; infra work (new store + deploy changes),
    not a UI task.
-3. **Timer bar** *(Medium value, S/M effort)* — add a draining bar across
-   the screen on both Presentation Screen and the host screen, alongside
-   (not replacing) the existing numeric countdown.
-4. **Player-side question display rework** *(Medium value, L effort)* —
+3. **Player-side question display rework** *(Medium value, L effort)* —
    current player-side question display may need to change — specifics
    TBD, needs a discovery pass. (Separate from the question-panel overlay
    mechanism above — this is about the broader question display, not the
