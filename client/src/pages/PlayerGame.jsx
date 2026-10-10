@@ -139,6 +139,12 @@ export default function PlayerGame() {
       navigate("/join");
     });
 
+    socket.on("game:removed", () => {
+      clearPlayerSession();
+      alert("The host removed you from this game.");
+      navigate("/join");
+    });
+
     return () => {
       socket.off("connect", resume);
       socket.off("game:questionIntro");
@@ -147,6 +153,7 @@ export default function PlayerGame() {
       socket.off("game:leaderboard");
       socket.off("game:ended");
       socket.off("game:hostLeft");
+      socket.off("game:removed");
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code, myName, navigate]);

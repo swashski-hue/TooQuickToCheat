@@ -147,6 +147,19 @@ instead of being lost with the in-memory `Map`.
   already-expired case) per the testing convention in `CLAUDE.md`; not yet
   verified against a real Render redeploy.
 
+**Mid-game join + host-removable players** (2026-10-10): `player:checkRoom`/
+`player:join` no longer require `room.state === "lobby"` — a latecomer (or
+someone who got fully dropped past the reconnect grace period and had to
+fall back from `player:resume` to a fresh join) can join at any point in a
+room's lifecycle. `player:join`'s ack now carries `live: roomLiveState(room)`
+so the client's existing `player:resume` call right after lands them on
+whatever screen is actually live (question/reveal/etc.), same mechanism a
+reconnect already used — no new client-side state-landing logic needed.
+Also added `host:removePlayer` (new chip "×" button in `HostRoom.jsx`'s
+player list, confirm-gated): clears the player's pending disconnect timer if
+any, removes them from the room, and tells their socket (`game:removed`) to
+clear its session and bounce to `/join`.
+
 ## Known gaps (not yet fixed)
 
 None currently tracked.

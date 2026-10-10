@@ -169,6 +169,13 @@ export default function HostRoom() {
     if (window.confirm("End the quiz for everyone now? This can't be undone.")) endGame();
   }
 
+  function removePlayer(player) {
+    if (!window.confirm(`Remove ${player.name} from this game?`)) return;
+    socket.emit("host:removePlayer", { code, playerId: player.id }, (res) => {
+      if (!res.ok && res.error) alert(res.error);
+    });
+  }
+
   async function copyCode() {
     try {
       if (navigator.clipboard?.writeText) {
@@ -471,6 +478,14 @@ export default function HostRoom() {
                 <span className={`chip ${p.online === false ? "chip-offline" : ""}`} key={p.id}>
                   {p.emoji} {p.name}
                   {p.online === false && " (away)"}
+                  <button
+                    type="button"
+                    className="chip-remove-btn"
+                    title={`Remove ${p.name}`}
+                    onClick={() => removePlayer(p)}
+                  >
+                    ×
+                  </button>
                 </span>
               ))}
               {players.length === 0 && <p className="subtitle">Nobody's joined yet.</p>}

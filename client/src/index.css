@@ -484,6 +484,9 @@ body {
 }
 
 .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: var(--surface-2);
   padding: 6px 14px;
   border-radius: 20px;
@@ -493,6 +496,21 @@ body {
 .chip-offline {
   opacity: 0.5;
   font-style: italic;
+}
+
+.chip-remove-btn {
+  border: none;
+  background: none;
+  color: inherit;
+  opacity: 0.6;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.chip-remove-btn:hover {
+  opacity: 1;
 }
 
 .timer-badge {

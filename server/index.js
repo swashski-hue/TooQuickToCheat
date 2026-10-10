@@ -459,6 +459,27 @@ io.on("connection", (socket) => {
     ack?.({ ok: true });
   });
 
+  // Lets the host kick a player (misbehaving, joined by mistake, etc.) out of
+  // the room entirely — distinct from the reconnect-grace "disconnected" state,
+  // this removes them immediately and tells their client to bail out.
+  socket.on("host:removePlayer", ({ code, playerId }, ack) => {
+    const room = game.getRoom(code);
+    if (!room || room.hostSocketId !== socket.id) return ack?.({ ok: false, error: "Not authorized" });
+    const player = room.players.get(playerId);
+    if (!player) return ack?.({ ok: false, error: "Player not found" });
+
+    if (player.disconnectTimer) clearTimeout(player.disconnectTimer);
+    game.removePlayer(room, playerId);
+    emitPlayers(room);
+
+    const playerSocket = io.sockets.sockets.get(playerId);
+    if (playerSocket) {
+      playerSocket.emit("game:removed");
+      playerSocket.leave(room.code);
+    }
+    ack?.({ ok: true });
+  });
+
   // ----- Presentation (spectator) events -----
   // Joins the room's broadcast group without becoming a player or the host —
   // for the big-screen/Teams-share view the quiz master projects.
@@ -476,11 +497,14 @@ io.on("connection", (socket) => {
 
   // ----- Player events -----
   // Validates a room code before the naming/emoji screen, and reports which
-  // emoji are already taken so the picker can grey them out up front.
+  // emoji are already taken so the picker can grey them out up front. Joining
+  // is allowed at any point in a game (not just the lobby) — both for genuine
+  // latecomers, and so a player who got fully dropped (past the reconnect
+  // grace period, removed from the room) has a way back in via this same
+  // flow rather than being stuck once their "player:resume" session expires.
   socket.on("player:checkRoom", ({ code }, ack) => {
     const room = game.getRoom(code);
     if (!room) return ack?.({ ok: false, error: "Room not found" });
-    if (room.state !== "lobby") return ack?.({ ok: false, error: "Game already started" });
     ack?.({ ok: true, takenEmojis: Array.from(game.takenEmojis(room)) });
   });
 
@@ -488,7 +512,6 @@ io.on("connection", (socket) => {
     const room = game.getRoom(code);
     if (!room) return ack?.({ ok: false, error: "Room not found" });
     if (!name || !name.trim()) return ack?.({ ok: false, error: "Name required" });
-    if (room.state !== "lobby") return ack?.({ ok: false, error: "Game already started" });
 
     const result = game.addPlayer(room, socket.id, name.trim(), emoji);
     if (!result.ok) return ack?.(result);
@@ -496,7 +519,10 @@ io.on("connection", (socket) => {
     socket.data.role = "player";
     socket.data.roomCode = room.code;
 
-    ack?.({ ok: true, roundName: room.round?.name ?? null });
+    // A latecomer lands on whatever screen is actually live (question, reveal,
+    // etc.) via the same payload a reconnect uses — PlayerGame.jsx's
+    // "player:resume" call right after this join picks it up from there.
+    ack?.({ ok: true, roundName: room.round?.name ?? null, live: roomLiveState(room) });
     emitPlayers(room);
   });
 
