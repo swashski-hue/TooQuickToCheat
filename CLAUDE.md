@@ -36,6 +36,9 @@ server/
                    (pure-ish functions, no server/socket dependency — see "Testing" below)
   bankStore.js   — Quiz Bank persistence (DATA_DIR/bank.json)
   userStore.js   — accounts persistence (DATA_DIR/users.json)
+  gameStore.js   — in-progress game-state snapshots (DATA_DIR/games.json),
+                   so a crash/redeploy doesn't lose a live room — see
+                   gameManager.js's loadRoomsFromSnapshot/resumeQuestionTimer
   auth.js        — session JWT sign/verify, cookie config
   data/          — bank.json, users.json, uploads/ (gitignored, holds real content)
 

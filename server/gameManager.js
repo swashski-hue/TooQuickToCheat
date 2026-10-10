@@ -149,6 +149,88 @@ export function getRoom(code) {
   return rooms.get((code || "").toUpperCase());
 }
 
+export function allRooms() {
+  return Array.from(rooms.values());
+}
+
+/** Plain-JSON snapshot of a room for persistence — drops timer handles and socket ids. */
+export function serializeRoom(room) {
+  return {
+    code: room.code,
+    round: room.round,
+    queue: room.queue,
+    queueSeq: room.queueSeq,
+    state: room.state,
+    questionIndex: room.questionIndex,
+    questionStartedAt: room.questionStartedAt,
+    correctAnswerCount: room.correctAnswerCount ?? 0,
+    fastTrackTopIds: room.fastTrackTopIds ?? null,
+    lastBoard: room.lastBoard ?? null, // cached by index.js for roomLiveState() on reconnect
+    lastReveal: room.lastReveal ?? null,
+    players: Array.from(room.players.values()).map((p) => ({
+      id: p.id,
+      name: p.name,
+      emoji: p.emoji,
+      score: p.score,
+      lastAnswer: p.lastAnswer,
+    })),
+  };
+}
+
+/**
+ * Rebuilds rooms from a disk snapshot after a process restart. Every socket
+ * from before the restart is gone, so every player (and the host) come back
+ * marked disconnected under their old (now-stale) socket id — index.js is
+ * responsible for starting the normal reconnect-grace timers for them, same
+ * as it would for a live disconnect. The moment someone actually reconnects,
+ * the existing host:resume/player:resume flow swaps the stale id for a real
+ * one, same as any other reconnect.
+ */
+export function loadRoomsFromSnapshot(snapshot) {
+  const restored = [];
+  for (const data of snapshot) {
+    const room = {
+      code: data.code,
+      hostSocketId: null,
+      round: data.round,
+      queue: data.queue || [],
+      queueSeq: data.queueSeq || 0,
+      players: new Map(),
+      state: data.state,
+      questionIndex: data.questionIndex,
+      questionStartedAt: data.questionStartedAt,
+      correctAnswerCount: data.correctAnswerCount || 0,
+      fastTrackTopIds: data.fastTrackTopIds || null,
+      timer: null,
+      hostDisconnectTimer: null,
+      lastBoard: data.lastBoard || null,
+      lastReveal: data.lastReveal || null,
+    };
+    for (const p of data.players || []) {
+      room.players.set(p.id, { ...p, disconnected: true, disconnectTimer: null });
+    }
+    rooms.set(room.code, room);
+    restored.push(room);
+  }
+  return restored;
+}
+
+/**
+ * Re-arms a restored room's question timer from where it actually left off
+ * (using the preserved questionStartedAt), instead of restarting the full
+ * time limit the way revealBoard() does for a fresh question. If time had
+ * already run out while the process was down, fires onTimeout immediately.
+ * No-ops outside the "question" state (nothing to resume).
+ */
+export function resumeQuestionTimer(room, onTimeout) {
+  if (room.state !== "question" || !room.round) return;
+  const q = currentQuestion(room);
+  if (!q) return;
+  const totalMs = q.timeLimitSeconds * 1000 + 300;
+  const elapsedMs = Date.now() - room.questionStartedAt;
+  scheduleQuestionTimeout(room, Math.max(totalMs - elapsedMs, 0), onTimeout);
+}
+
 export function removeRoom(code) {
   const room = rooms.get(code);
   if (room?.timer) clearTimeout(room.timer);
@@ -299,6 +381,17 @@ export function questionIntroPayload(room) {
   };
 }
 
+/** Shared by revealBoard (fresh question) and resumeQuestionTimer (resuming after a restart). */
+function scheduleQuestionTimeout(room, ms, onTimeout) {
+  if (room.timer) clearTimeout(room.timer);
+  room.timer = setTimeout(() => {
+    if (room.state === "question") {
+      room.state = "reveal";
+      onTimeout();
+    }
+  }, ms);
+}
+
 /** Shows the answer board (options grid or alphabet) and starts the timer. */
 export function revealBoard(room, onTimeout) {
   const q = currentQuestion(room);
@@ -310,13 +403,7 @@ export function revealBoard(room, onTimeout) {
   // Fast Track checks this, not the post-question standings.
   room.fastTrackTopIds = room.round.fastTrack ? topPlayerIds(room, 3) : null;
 
-  if (room.timer) clearTimeout(room.timer);
-  room.timer = setTimeout(() => {
-    if (room.state === "question") {
-      room.state = "reveal";
-      onTimeout();
-    }
-  }, q.timeLimitSeconds * 1000 + 300);
+  scheduleQuestionTimeout(room, q.timeLimitSeconds * 1000 + 300, onTimeout);
 
   const payload = {
     type: q.type,

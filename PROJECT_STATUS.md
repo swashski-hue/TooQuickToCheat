@@ -122,19 +122,44 @@ sparkle), octopus (stand-in: water bubble). The remaining 8 still fall back
 to a synthesized placeholder tone — see "Next up" below to finish sourcing
 those.
 
+**Game-state persistence** (2026-10-10): in-progress rooms (round, queue,
+player scores/answers, current question + remaining time, cached
+board/reveal payloads) now survive a server crash or a Render redeploy
+instead of being lost with the in-memory `Map`.
+- `server/gameStore.js` snapshots every room to `DATA_DIR/games.json`
+  (same persistent disk `bankStore.js`/`userStore.js` already use) every 5s,
+  plus a final flush on `SIGTERM` (Render sends this before killing the old
+  instance on redeploy). Overwritten wholesale each time, so a removed room
+  just drops out of the next snapshot.
+- On boot, `gameManager.js`'s `loadRoomsFromSnapshot` rebuilds the `rooms`
+  map from that file. Every player/host comes back marked "disconnected"
+  under their now-stale socket id — deliberately reusing the *existing*
+  reconnect-grace-period machinery (`host:resume`/`player:resume` already
+  matched by room code/name, not socket id) rather than inventing a second
+  recovery path. `resumeQuestionTimer` re-arms a live question's timer from
+  the preserved `questionStartedAt` rather than restarting the full time
+  limit — if time had already fully elapsed while the process was down, it
+  fires the reveal transition immediately instead of scheduling anything.
+- Chose a disk snapshot over adding Redis — reuses existing infra/DATA_DIR
+  convention instead of new infra, cost, and deploy changes, confirmed with
+  the user as the right tradeoff here. Verified with a throwaway script
+  (serialize → restore → resume-timer round trip, including the
+  already-expired case) per the testing convention in `CLAUDE.md`; not yet
+  verified against a real Render redeploy.
+
 ## Known gaps (not yet fixed)
 
-- **Game state is in-memory only** — a server crash/redeploy loses any
-  in-progress game (not the Quiz Bank, that's on disk). Ranked #2 in
-  "Next up" below.
+None currently tracked.
 
 ## Next up
 
 Ranked by effort × value (discovery + ranking session, 2026-10-10) — value
 rated by the user, effort estimated against the current code. The
 host-reveal-screen chunk, pictures-as-hero, the player question
-full-screen overlay, and the timer bar are all done — see "Shipped"
-above.
+full-screen overlay, the timer bar, and persistence are all done — see
+"Shipped" above. ("Player-side question display rework" also turned out to
+already be covered by the question-panel overlay + pictures-as-hero work —
+realized 2026-10-10, removed from this list without separate work.)
 
 1. **Finish sourcing fastest-answer emoji sounds** *(low effort, just
    asset-hunting)* — 8 of 16 emojis in
@@ -152,11 +177,3 @@ above.
      suits a robot, no real asset needed.
    Once files are in `client/public/sounds/`, wiring a new emoji into
    `EMOJI_SOUND_FILES` is a one-line change.
-2. **Persistence (Redis or similar for game state)** *(High value, L
-   effort)* — known gap above; infra work (new store + deploy changes),
-   not a UI task.
-3. **Player-side question display rework** *(Medium value, L effort)* —
-   current player-side question display may need to change — specifics
-   TBD, needs a discovery pass. (Separate from the question-panel overlay
-   mechanism above — this is about the broader question display, not the
-   "see full question" interaction, which is now shipped.)

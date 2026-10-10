@@ -13,6 +13,7 @@ import { nanoid } from "nanoid";
 import * as bankStore from "./bankStore.js";
 import * as userStore from "./userStore.js";
 import * as game from "./gameManager.js";
+import * as gameStore from "./gameStore.js";
 import { COOKIE_NAME, COOKIE_MAX_AGE_MS, signSession, verifySession } from "./auth.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -26,6 +27,7 @@ const PORT = process.env.PORT || 4000;
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const HOST_RECONNECT_GRACE_MS = 45_000;
 const PLAYER_RECONNECT_GRACE_MS = 60_000;
+const SNAPSHOT_INTERVAL_MS = 5_000;
 const INVITE_CODE = process.env.INVITE_CODE || "quiznight";
 if (!process.env.INVITE_CODE) {
   console.warn('⚠️  INVITE_CODE is not set — using the default "quiznight". Set a real one before deploying.');
@@ -222,6 +224,31 @@ io.use((socket, next) => {
 
 function emitPlayers(room) {
   io.to(room.code).emit("room:players", game.playerList(room));
+}
+
+// Shared by a live socket "disconnect" and by the startup restore below (every
+// player/host comes back from a disk snapshot already "disconnected" under a
+// now-stale socket id, so they go through the exact same grace-period logic a
+// real disconnect would have triggered).
+function schedulePlayerDisconnectGrace(room, player) {
+  const disconnectedSocketId = player.id;
+  player.disconnectTimer = setTimeout(() => {
+    const current = room.players.get(disconnectedSocketId);
+    if (current === player && player.disconnected) {
+      game.removePlayer(room, disconnectedSocketId);
+      emitPlayers(room);
+    }
+  }, PLAYER_RECONNECT_GRACE_MS);
+}
+
+function scheduleHostDisconnectGrace(room, disconnectedSocketId) {
+  room.hostDisconnectTimer = setTimeout(() => {
+    room.hostDisconnectTimer = null;
+    if (room.hostSocketId === disconnectedSocketId) {
+      io.to(room.code).emit("game:hostLeft");
+      game.removeRoom(room.code);
+    }
+  }, HOST_RECONNECT_GRACE_MS);
 }
 
 function emitQueue(room) {
@@ -564,29 +591,44 @@ io.on("connection", (socket) => {
       const player = game.markPlayerDisconnected(room, socket.id);
       if (player) {
         emitPlayers(room);
-        const disconnectedSocketId = socket.id;
-        player.disconnectTimer = setTimeout(() => {
-          const current = room.players.get(disconnectedSocketId);
-          if (current === player && player.disconnected) {
-            game.removePlayer(room, disconnectedSocketId);
-            emitPlayers(room);
-          }
-        }, PLAYER_RECONNECT_GRACE_MS);
+        schedulePlayerDisconnectGrace(room, player);
       }
     } else if (socket.data.role === "host" && room.hostSocketId === socket.id) {
       // Grace period: a page refresh or brief network drop shouldn't nuke the
       // room and every player's score. Only remove it if nobody re-identifies
       // as this room's host (via "host:resume") before the timer fires.
-      const disconnectedSocketId = socket.id;
-      room.hostDisconnectTimer = setTimeout(() => {
-        room.hostDisconnectTimer = null;
-        if (room.hostSocketId === disconnectedSocketId) {
-          io.to(room.code).emit("game:hostLeft");
-          game.removeRoom(room.code);
-        }
-      }, HOST_RECONNECT_GRACE_MS);
+      scheduleHostDisconnectGrace(room, socket.id);
     }
   });
+});
+
+// ---- Game-state persistence (survives a crash or a redeploy) ----
+// Rooms live in memory only; this snapshots them to the same persistent disk
+// bankStore.js/userStore.js use (DATA_DIR), and restores on boot. Every
+// player/host comes back "disconnected" under their old socket id and goes
+// through the normal reconnect-grace flow — see gameManager.js's
+// loadRoomsFromSnapshot/resumeQuestionTimer for the state-rebuild details.
+const restoredRooms = game.loadRoomsFromSnapshot(gameStore.loadSnapshot());
+for (const room of restoredRooms) {
+  game.resumeQuestionTimer(room, () => doReveal(room));
+  scheduleHostDisconnectGrace(room, null);
+  for (const player of room.players.values()) {
+    schedulePlayerDisconnectGrace(room, player);
+  }
+}
+if (restoredRooms.length) {
+  console.log(`Restored ${restoredRooms.length} in-progress room(s) from disk.`);
+}
+
+function snapshotRooms() {
+  gameStore.saveSnapshot(game.allRooms().map(game.serializeRoom));
+}
+setInterval(snapshotRooms, SNAPSHOT_INTERVAL_MS);
+// Render sends SIGTERM before killing the old instance on a redeploy — flush
+// one last snapshot so we don't lose up to SNAPSHOT_INTERVAL_MS of state.
+process.on("SIGTERM", () => {
+  snapshotRooms();
+  process.exit(0);
 });
 
 httpServer.listen(PORT, () => {
