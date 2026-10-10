@@ -3,6 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { socket } from "../lib/socket.js";
 import { SERVER_URL } from "../lib/api.js";
 import { ROUND_TYPE_LABELS, ROUND_TYPE_HINTS, FAST_TRACK_LABEL } from "../lib/roundTypes.js";
+import { getFastestCorrect } from "../lib/fastestAnswers.js";
+import { formatGivenAnswer } from "../lib/formatAnswer.js";
 import AddRoundModal from "../components/AddRoundModal.jsx";
 import RunningOrderPanel from "../components/RunningOrderPanel.jsx";
 
@@ -191,6 +193,8 @@ export default function HostRoom() {
   const pictureUrl = intro?.pictureUrl || board?.pictureUrl;
   const answeredPct = players.length ? Math.round((100 * answerCount.answered) / players.length) : 0;
   const canStart = queue.length > 0;
+  const fastest = reveal ? getFastestCorrect(reveal.results) : [];
+  const correctCount = reveal ? reveal.results.filter((r) => r.answer?.isCorrect).length : 0;
 
   return (
     <div className="host-screen">
@@ -290,11 +294,6 @@ export default function HostRoom() {
 
           {phase === "reveal" && reveal && board && (
             <>
-              {pictureUrl && (
-                <div className="picture-display">
-                  <img src={`${SERVER_URL}${pictureUrl}`} alt="" />
-                </div>
-              )}
               <h2 className="question-text">{board.text}</h2>
               {reveal.type === "multiple_choice" && (
                 <div className="options-display">
@@ -327,6 +326,46 @@ export default function HostRoom() {
                   ⚡ FAST TRACKED! {reveal.fastTrackEvent.playerName} jumps to {reveal.fastTrackEvent.newScore} points!
                 </div>
               )}
+
+              <div className="host-reveal-results">
+                <div className="host-reveal-stat">
+                  <span className="host-reveal-stat-number correct-text">{correctCount}</span>
+                  <span className="host-reveal-stat-label">/ {reveal.results.length} got it right</span>
+                </div>
+
+                {fastest.length > 0 && (
+                  <div className="host-reveal-fastest">
+                    <span className="host-sidebar-label">⚡ Fastest correct — read these out</span>
+                    <ol className="host-fastest-list">
+                      {fastest.slice(0, 5).map((r) => (
+                        <li key={r.id}>
+                          {r.emoji} {r.name} <span className="host-fastest-points">+{r.answer.points}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+
+                <div className="host-reveal-breakdown">
+                  <span className="host-sidebar-label">Who answered what</span>
+                  <div className="host-breakdown-grid">
+                    {reveal.results.map((r) => (
+                      <div
+                        className={`host-breakdown-chip ${
+                          r.answer?.isCorrect ? "correct" : r.answer ? "wrong" : "unanswered"
+                        }`}
+                        key={r.id}
+                      >
+                        <span className="host-breakdown-player">
+                          {r.emoji} {r.name}
+                        </span>
+                        <span className="host-breakdown-answer">{formatGivenAnswer(reveal.type, r.answer?.given, board)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
               <button className="btn btn-primary btn-large" onClick={revealScoreboard}>
                 Show Scoreboard
               </button>
@@ -351,7 +390,7 @@ export default function HostRoom() {
 
           {phase === "leaderboard" && !hasMore && (
             <>
-              <h2>Round over!</h2>
+              <div className="host-round-end-banner">🏁 ROUND OVER — pick what's next</div>
               <ol className="leaderboard">
                 {standings.map((p, i) => (
                   <li key={p.id}>
@@ -362,7 +401,9 @@ export default function HostRoom() {
               <button className="btn btn-primary btn-large" onClick={startQuestion} disabled={!canStart}>
                 Start Next Round
               </button>
-              {!canStart && <p className="subtitle">Add a round to the running order (on the right) first.</p>}
+              {!canStart && (
+                <p className="host-round-end-warning">⚠ Add a round to the running order (on the right) first.</p>
+              )}
               <button className="btn btn-link" onClick={confirmEndGame}>
                 Or end the quiz here
               </button>
@@ -389,7 +430,9 @@ export default function HostRoom() {
         <aside className="host-sidebar">
           <div className="host-sidebar-section">
             <span className="host-sidebar-label">Progress</span>
-            <span className="phase-pill">{PHASE_LABEL[phase]}</span>
+            <span className={`phase-pill ${phase === "leaderboard" && !hasMore ? "phase-pill-round-end" : ""}`}>
+              {phase === "leaderboard" && !hasMore ? "Round over!" : PHASE_LABEL[phase]}
+            </span>
           </div>
 
           {currentRound && (

@@ -4,6 +4,7 @@ import { socket } from "../lib/socket.js";
 import { SERVER_URL } from "../lib/api.js";
 import { ROUND_TYPE_LABELS, FAST_TRACK_LABEL } from "../lib/roundTypes.js";
 import { rankColor } from "../lib/rankColor.js";
+import { getFastestCorrect } from "../lib/fastestAnswers.js";
 
 // Shown above the question on both the intro screen and the live question
 // board, so the room knows what kind of question is coming and how to
@@ -125,12 +126,7 @@ export default function PresentationScreen() {
   const pictureUrl = intro?.pictureUrl || board?.pictureUrl;
 
   const correctResults = reveal ? reveal.results.filter((r) => r.answer?.isCorrect) : [];
-  const fastest = [...correctResults].sort((a, b) => {
-    const ra = a.answer.rank ?? Infinity;
-    const rb = b.answer.rank ?? Infinity;
-    if (ra !== rb) return ra - rb;
-    return a.answer.elapsedMs - b.answer.elapsedMs;
-  });
+  const fastest = reveal ? getFastestCorrect(reveal.results) : [];
   const fastestPlayer = fastest[0] || null;
 
   // Random burst directions for the fastest-player emoji splash — memoized so

@@ -4,7 +4,8 @@
 conventions, how to run/test it) — this file is the living changelog: what's
 shipped, what's outstanding, and what's next. Keep "Shipped" current, move
 finished items out of "Next up," and add anything discovered to "Known
-gaps." For *why* a past fix was built a specific way or what exact bug it
+gaps." Quick bug/feedback notes from testing go in `FEEDBACK.md` first —
+triage those into this file (and clear them out) periodically. For *why* a past fix was built a specific way or what exact bug it
 fixed, `git log`/`git show` on the relevant commit has the full story — this
 file intentionally doesn't repeat that detail.
 
@@ -65,14 +66,74 @@ something new, flag it explicitly in this file until it's confirmed.
   see "Resilience" above): a player or the presentation screen reloading
   during a live question lands back on "lobby" until the next phase-change
   event, instead of showing the current question. Self-heals on the host's
-  next action; lower priority than the host-side version was.
+  next action. Ranked #4 in "Next up" below.
 - **Game state is in-memory only** — a server crash/redeploy loses any
-  in-progress game (not the Quiz Bank, that's on disk). Acceptable for a
-  hobby project; would need Redis or similar to fix properly.
+  in-progress game (not the Quiz Bank, that's on disk). Ranked #7 in
+  "Next up" below.
 
 ## Next up
 
-No specific block queued — the app is fully live and the recent round of
-real-device bug reports (Go Wide, join flow, reveal screens) is resolved
-and confirmed working. Pick from "Known gaps" above, or whatever the user
-raises next.
+Ranked by effort × value (discovery + ranking session, 2026-10-10) — value
+rated by the user, effort estimated against the current code. Items 1–3
+are really one chunk of host-reveal-screen work (#2/#3 build on #1's
+surface) and are the current priority.
+
+1. **Round-ended state, more prominent on host** *(High value, S effort)*
+   — the "Round over!" + "Start Next Round" leaderboard state already
+   exists for all three screens (`phase === "leaderboard" && !hasMore"`) —
+   it just needs a much harder-to-miss treatment on the host screen
+   specifically (host already sees the running order, so no new
+   round-gap screen needed there; players/presentation keep their
+   existing leaderboard-as-gap screen).
+2. **Fastest-correct on host, no delay** *(High value, S effort)* — host
+   sees the top 5 fastest-correct (not just 1) immediately on reveal — no
+   3s suspense delay like Presentation Screen has, since the host needs
+   to read them out loud in sync with what's about to appear on the big
+   screen. Needs the `fastest` sort/slice logic in `PresentationScreen.jsx`
+   extracted to a shared helper rather than duplicated. Depends on #3's
+   surface existing.
+3. **Host reveal screen rework** *(High value, M effort)* — on reveal,
+   replace the host's main-stage content with a results view — mirrors
+   what Presentation Screen shows (correct-count stats, top-5
+   fastest-correct list), since the data already arrives in the
+   `game:reveal` payload (`gameManager.js`'s `results`, with
+   `lastAnswer.{isCorrect,rank,elapsedMs}` per player) and just isn't
+   rendered on the host side yet (`HostRoom.jsx`'s reveal branch). No
+   server changes needed. Per-player "who answered what" breakdown also
+   goes here.
+4. **Reload mid-question fix (player/presentation)** *(High value, M
+   effort)* — known gap above; can mirror the pattern already proven for
+   the host side.
+5. **Audio — presentation screen only** *(High value, M effort)* — a
+   question-timer tick/countdown sound and a sting for the
+   fastest-answerer reveal, played from Presentation Screen only
+   (host/player stay silent — the room hears it together off the big
+   screen/speakers). No mute control needed on host for now. Needs a
+   user-gesture-unlock pattern to get past browser autoplay restrictions.
+   Sound asset selection still TBD; scope this first pass as wiring the
+   trigger mechanism (phase/event → playback) cleanly, swap in real
+   sounds once that's proven.
+6. **Pictures as hero element** *(High value, M effort)* — on both the
+   intro screen and the live question screen, the picture becomes the
+   dominant visual element (question text shrinks to a caption-style
+   strip), replacing today's image-above-text stacked layout
+   (`.picture-display` in both `HostRoom.jsx` and `PresentationScreen.jsx`).
+   Needs a couple of quick visual iterations to land on — not fully
+   nailed down until seen live.
+7. **Persistence (Redis or similar for game state)** *(High value, L
+   effort)* — known gap above; infra work (new store + deploy changes),
+   not a UI task.
+8. **Player "see question" interaction rework** *(High value, L effort)*
+   — rework how "see question" (bringing the picture into view) works on
+   the player app, separate from the hero-picture treatment in #6. Largest
+   unknown on the list: direction isn't decided yet, so this needs its own
+   discovery pass before it's buildable.
+9. **Timer bar** *(Medium value, S/M effort)* — add a draining bar across
+   the screen on both Presentation Screen and the host screen, alongside
+   (not replacing) the existing numeric countdown.
+10. **Player-side question display rework** *(Medium value, L effort)* —
+    current player-side question display may need to change — specifics
+    TBD, needs a discovery pass.
+11. **Expanding the full question** *(Medium value, L effort)* — some way
+    for a question to be shown "expanded"/full-size — mechanism and
+    trigger entirely undefined, needs a discovery pass.

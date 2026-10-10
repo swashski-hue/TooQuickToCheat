@@ -102,6 +102,11 @@ equal the leader's score.
   Design/test for touch + portrait first — desktop usability is a non-goal.
 - `Login`/`Home` are host-only in practice — treat as desktop-optimized too.
 - If a new screen's bucket isn't obvious, ask rather than retrofit later.
+- **The host screen must be self-sufficient**: assume the host is not
+  looking at the Presentation Screen while running the game. Anything
+  presentation shows that's operationally useful to the host (who answered
+  what, who was fastest, etc.) needs its own treatment on the host screen
+  too — not just a "same as presentation" reuse.
 
 ## Testing convention
 

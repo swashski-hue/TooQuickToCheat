@@ -458,6 +458,12 @@ body {
   border-radius: 20px;
 }
 
+.phase-pill-round-end {
+  background: var(--yellow);
+  color: var(--bg);
+  animation: round-end-pulse 1.4s ease-in-out infinite;
+}
+
 .progress-track {
   height: 8px;
   background: var(--surface-2);
@@ -550,6 +556,127 @@ body {
   padding: 14px 20px;
   border-radius: 12px;
   margin: 16px 0;
+}
+
+.host-round-end-banner {
+  background: var(--yellow);
+  color: var(--bg);
+  font-weight: 800;
+  font-size: 1.4rem;
+  text-align: center;
+  padding: 16px 20px;
+  border-radius: 14px;
+  margin-bottom: 20px;
+  border: 3px solid var(--bg);
+  animation: round-end-pulse 1.4s ease-in-out infinite;
+}
+
+.host-round-end-warning {
+  color: var(--wrong);
+  font-weight: 700;
+}
+
+@keyframes round-end-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(239, 197, 62, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(239, 197, 62, 0);
+  }
+}
+
+.host-reveal-results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  margin: 20px 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--surface-2);
+}
+
+.host-reveal-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.host-reveal-stat-number {
+  font-size: 2.4rem;
+  font-weight: 800;
+}
+
+.host-reveal-stat-label {
+  color: var(--text-dim);
+}
+
+.host-reveal-fastest,
+.host-reveal-breakdown {
+  width: 100%;
+  max-width: 480px;
+  text-align: left;
+}
+
+.host-fastest-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.host-fastest-list li {
+  display: flex;
+  justify-content: space-between;
+  background: var(--surface-2);
+  border-radius: 8px;
+  padding: 8px 14px;
+}
+
+.host-fastest-points {
+  color: var(--pa-amber-dark, var(--yellow));
+  font-weight: 700;
+}
+
+.host-breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.host-breakdown-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  border-left: 4px solid transparent;
+}
+
+.host-breakdown-chip.correct {
+  border-left-color: var(--correct);
+}
+
+.host-breakdown-chip.wrong {
+  border-left-color: var(--wrong);
+}
+
+.host-breakdown-chip.unanswered {
+  border-left-color: var(--text-dim);
+  opacity: 0.7;
+}
+
+.host-breakdown-player {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.host-breakdown-answer {
+  font-size: 0.85rem;
+  color: var(--text-dim);
 }
 
 .leaderboard {
