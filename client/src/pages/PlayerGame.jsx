@@ -349,20 +349,26 @@ export default function PlayerGame() {
           </div>
           {roundBadge && <div className="round-badge">{roundBadge} Round</div>}
 
-          <button
-            className={`question-panel ${questionExpanded ? "expanded" : ""}`}
-            onClick={() => setQuestionExpanded((v) => !v)}
-          >
-            {pictureUrl && questionExpanded && (
-              <div className="picture-display small">
-                <img src={`${SERVER_URL}${pictureUrl}`} alt="" />
-              </div>
-            )}
-            <p className={questionExpanded ? "question-text" : "question-text clamped"}>
+          <button className="question-panel" onClick={() => setQuestionExpanded(true)}>
+            <p className="question-text clamped">
               {phase === "reveal" ? correctAnswerText : questionText}
             </p>
-            <span className="question-hint">{questionExpanded ? "Tap to collapse" : "Tap question to see more..."}</span>
+            <span className="question-hint">Tap question to see more...</span>
           </button>
+
+          {questionExpanded && (
+            <div className="question-overlay" onClick={() => setQuestionExpanded(false)}>
+              {pictureUrl && (
+                <div className="question-overlay-picture">
+                  <img src={`${SERVER_URL}${pictureUrl}`} alt="" />
+                </div>
+              )}
+              <p className="question-overlay-text">
+                {phase === "reveal" ? correctAnswerText : questionText}
+              </p>
+              <span className="question-overlay-hint">Tap anywhere to close</span>
+            </div>
+          )}
 
           {phase === "reveal" && (
             <p className={`subtitle center-text ${myAnswer?.isCorrect ? "correct-text" : "wrong-text"}`}>

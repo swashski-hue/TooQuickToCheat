@@ -1064,16 +1064,63 @@ body:has(.presentation-screen) {
   overflow: hidden;
 }
 
-.question-panel .picture-display.small img {
-  max-height: 140px;
-}
-
 .question-hint {
   display: block;
   color: #9992ad;
   font-size: 0.78rem;
   margin-top: 4px;
   font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+/* Tapping the question panel opens this full-screen overlay instead of
+   expanding the panel in place — the panel itself never grows, so the
+   answer board underneath never shrinks to make room for it. */
+.question-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: var(--pa-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 28px 20px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.question-overlay-picture {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+}
+
+.question-overlay-picture img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border: 3px solid var(--pa-navy);
+  border-radius: 14px;
+  box-shadow: 4px 4px 0 var(--pa-navy);
+  background: #fff;
+}
+
+.question-overlay-text {
+  flex-shrink: 0;
+  margin: 0;
+  font-weight: 700;
+  color: var(--pa-navy);
+  line-height: 1.25;
+  font-size: clamp(1.3rem, 6vw, 2rem);
+}
+
+.question-overlay-hint {
+  flex-shrink: 0;
+  color: #55486f;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 0.85rem;
 }
 
 .answer-area {
