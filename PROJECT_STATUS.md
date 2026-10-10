@@ -67,6 +67,38 @@ helper rather than duplicated. Round-ended state ("Round over!" + "Start
 Next Round") also got a much harder-to-miss treatment on the host screen
 specifically.
 
+**Pictures as hero element** (2026-10-10): picture-bearing questions now
+give the image the dominant share of the screen instead of a capped
+360px/text-first layout.
+- Presentation Screen: intro screens and Alphabet/Number live questions use
+  a full-height hero picture with the question text as a caption strip
+  underneath (`.present-hero*` in `index.css`). Multiple Choice/Sequence
+  live questions use a side-by-side split instead (`.present-split*`) —
+  picture on the left at full column height, boxed/centered answer options
+  in a single column on the right — so the bigger picture and the options
+  both stay visible together.
+- Player app: intro screen only (live question/reveal screens unchanged) —
+  the picture fills the available space with the caption overlaid on it
+  rather than sitting below as separate text (`.intro-hero-caption`).
+- Fixed a scrolling bug this introduced: `.presentation-screen` was
+  `min-height: 100vh` with an unbounded flex chain underneath, so the hero
+  picture had nothing to scale against and grew the page past the
+  viewport. Switched to a fixed `height: 100vh` + `overflow: hidden`
+  (matching the existing player-screen pattern) and propagated
+  `height: 100%`/`min-height: 0` down through `present-center` →
+  `present-intro-row` → `present-main` so hero/split content always scales
+  to fit, never scrolls.
+
+**Player question panel → full-screen overlay** (2026-10-10): tapping the
+question panel no longer expands it in place (which used to shrink the
+answer board to make room). It now opens a full-screen overlay
+(`.question-overlay` in `index.css`) on top of the answer board showing the
+full question text/picture; tapping anywhere on the overlay closes it and
+reveals the answer board again. This also resolves what were previously
+two separate undecided backlog items — "Player 'see question' interaction
+rework" and "Expanding the full question" — both are now this one
+mechanism.
+
 All of the above is live-verified either in-browser this session or
 directly by the user on a real device — nothing in this list is "logic
 only, unverified" at this point except where flagged. If that changes for
@@ -75,15 +107,16 @@ something new, flag it explicitly in this file until it's confirmed.
 ## Known gaps (not yet fixed)
 
 - **Game state is in-memory only** — a server crash/redeploy loses any
-  in-progress game (not the Quiz Bank, that's on disk). Ranked #3 in
+  in-progress game (not the Quiz Bank, that's on disk). Ranked #2 in
   "Next up" below.
 
 ## Next up
 
 Ranked by effort × value (discovery + ranking session, 2026-10-10) — value
 rated by the user, effort estimated against the current code. The
-host-reveal-screen chunk (round-ended state, fastest-correct, full reveal
-rework) is done — see "Shipped" above — so this list has moved up.
+host-reveal-screen chunk, pictures-as-hero, and the player question
+full-screen overlay are all done — see "Shipped" above — so this list has
+moved up and dropped the two items that overlay rework resolved.
 
 1. **Audio — presentation screen only** *(High value, M effort)* — a
    question-timer tick/countdown sound and a sting for the
@@ -94,27 +127,14 @@ rework) is done — see "Shipped" above — so this list has moved up.
    Sound asset selection still TBD; scope this first pass as wiring the
    trigger mechanism (phase/event → playback) cleanly, swap in real
    sounds once that's proven.
-2. **Pictures as hero element** *(High value, M effort)* — on both the
-   intro screen and the live question screen, the picture becomes the
-   dominant visual element (question text shrinks to a caption-style
-   strip), replacing today's image-above-text stacked layout
-   (`.picture-display` in both `HostRoom.jsx` and `PresentationScreen.jsx`).
-   Needs a couple of quick visual iterations to land on — not fully
-   nailed down until seen live.
-3. **Persistence (Redis or similar for game state)** *(High value, L
+2. **Persistence (Redis or similar for game state)** *(High value, L
    effort)* — known gap above; infra work (new store + deploy changes),
    not a UI task.
-4. **Player "see question" interaction rework** *(High value, L effort)*
-   — rework how "see question" (bringing the picture into view) works on
-   the player app, separate from the hero-picture treatment in #2. Largest
-   unknown on the list: direction isn't decided yet, so this needs its own
-   discovery pass before it's buildable.
-5. **Timer bar** *(Medium value, S/M effort)* — add a draining bar across
+3. **Timer bar** *(Medium value, S/M effort)* — add a draining bar across
    the screen on both Presentation Screen and the host screen, alongside
    (not replacing) the existing numeric countdown.
-6. **Player-side question display rework** *(Medium value, L effort)* —
-    current player-side question display may need to change — specifics
-    TBD, needs a discovery pass.
-7. **Expanding the full question** *(Medium value, L effort)* — some way
-    for a question to be shown "expanded"/full-size — mechanism and
-    trigger entirely undefined, needs a discovery pass.
+4. **Player-side question display rework** *(Medium value, L effort)* —
+   current player-side question display may need to change — specifics
+   TBD, needs a discovery pass. (Separate from the question-panel overlay
+   mechanism above — this is about the broader question display, not the
+   "see full question" interaction, which is now shipped.)
