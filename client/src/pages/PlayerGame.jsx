@@ -59,6 +59,31 @@ export default function PlayerGame() {
           return navigate("/join");
         }
         if (typeof res.score === "number") setMyScore(res.score);
+
+        // Land back on the screen we were actually on, not always the lobby —
+        // same reconnect pattern as the host screen.
+        const live = res.live;
+        if (live?.phase === "intro") {
+          setIntro(live.intro);
+          setBoard(null);
+          setMyAnswer(null);
+          setReveal(null);
+          setQuestionExpanded(false);
+          setPhase("intro");
+        } else if (live?.phase === "question") {
+          setBoard(live.board);
+          setMyAnswer(res.myAnswer || null);
+          setReveal(null);
+          setQuestionExpanded(false);
+          setSecondsLeft(live.secondsLeft);
+          setPhase("question");
+        } else if (live?.phase === "reveal") {
+          setBoard(live.board);
+          setMyAnswer(res.myAnswer || null);
+          setReveal(live.reveal);
+          setSecondsLeft(0);
+          setPhase("reveal");
+        }
       });
     }
 

@@ -247,12 +247,14 @@ function doRevealBoard(room) {
   io.to(room.code).emit("game:answerBoard", board);
 }
 
-// What a reconnecting host needs to land back on the screen they were
-// actually on, instead of always resetting to the lobby. Re-derives from
-// current state where that's safe (intro); replays the cached payload where
-// it isn't (question/reveal — revealBoard()/revealAnswer() both mutate state,
-// so they can't just be called again).
-function hostLiveState(room) {
+// What a reconnecting client (host, player, or presentation) needs to land
+// back on the screen it was actually on, instead of always resetting to the
+// lobby. Re-derives from current state where that's safe (intro); replays
+// the cached payload where it isn't (question/reveal — revealBoard()/
+// revealAnswer() both mutate state, so they can't just be called again).
+// Room-level, not host-specific, despite the historical name of the one
+// caller that needed it first.
+function roomLiveState(room) {
   if (room.state === "intro") {
     return { phase: "intro", intro: game.questionIntroPayload(room) };
   }
@@ -310,7 +312,7 @@ io.on("connection", (socket) => {
           }
         : null,
       queue: game.queueList(room),
-      live: hostLiveState(room),
+      live: roomLiveState(room),
     });
   });
 
@@ -441,7 +443,7 @@ io.on("connection", (socket) => {
     socket.data.role = "spectator";
     socket.data.roomCode = room.code;
 
-    ack?.({ ok: true, roundName: room.round?.name ?? null });
+    ack?.({ ok: true, roundName: room.round?.name ?? null, live: roomLiveState(room) });
     emitPlayers(room);
   });
 
@@ -488,7 +490,13 @@ io.on("connection", (socket) => {
       socket.join(room.code);
       socket.data.role = "player";
       socket.data.roomCode = room.code;
-      return ack?.({ ok: true, roundName: room.round?.name ?? null, score: found.player.score });
+      return ack?.({
+        ok: true,
+        roundName: room.round?.name ?? null,
+        score: found.player.score,
+        live: roomLiveState(room),
+        myAnswer: found.player.lastAnswer,
+      });
     }
 
     if (!found.player.disconnected) {
@@ -500,7 +508,13 @@ io.on("connection", (socket) => {
     socket.data.role = "player";
     socket.data.roomCode = room.code;
 
-    ack?.({ ok: true, roundName: room.round?.name ?? null, score: player.score });
+    ack?.({
+      ok: true,
+      roundName: room.round?.name ?? null,
+      score: player.score,
+      live: roomLiveState(room),
+      myAnswer: player.lastAnswer,
+    });
     emitPlayers(room);
   });
 

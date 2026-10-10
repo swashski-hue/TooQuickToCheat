@@ -35,12 +35,40 @@ export default function PresentationScreen() {
   const tickRef = useRef(null);
 
   useEffect(() => {
-    if (!socket.connected) socket.connect();
+    // Re-join as this room's spectator on every (re)connect — covers both a
+    // fresh page load and the client's own reconnect after a network blip —
+    // same reconnect pattern as the host/player screens, so a reload mid
+    // question lands back on the live phase instead of resetting to lobby.
+    function join() {
+      socket.emit("spectator:join", { code }, (res) => {
+        if (!res.ok) return setJoinError(res.error);
+        setRoundName(res.roundName);
 
-    socket.emit("spectator:join", { code }, (res) => {
-      if (res.ok) setRoundName(res.roundName);
-      else setJoinError(res.error);
-    });
+        const live = res.live;
+        if (live?.phase === "intro") {
+          setIntro(live.intro);
+          setBoard(null);
+          setReveal(null);
+          setAnswerCount({ answered: 0, total: 0 });
+          setPhase("intro");
+        } else if (live?.phase === "question") {
+          setBoard(live.board);
+          setReveal(null);
+          setAnswerCount({ answered: 0, total: 0 });
+          setSecondsLeft(live.secondsLeft);
+          setPhase("question");
+        } else if (live?.phase === "reveal") {
+          setBoard(live.board);
+          setReveal(live.reveal);
+          setShowFastestSplash(false);
+          setPhase("reveal");
+        }
+      });
+    }
+
+    if (socket.connected) join();
+    else socket.connect();
+    socket.on("connect", join);
 
     socket.on("room:players", setPlayers);
 
@@ -84,6 +112,7 @@ export default function PresentationScreen() {
     socket.on("game:hostLeft", () => navigate("/host"));
 
     return () => {
+      socket.off("connect", join);
       socket.off("room:players");
       socket.off("game:roundSelected");
       socket.off("game:questionIntro");

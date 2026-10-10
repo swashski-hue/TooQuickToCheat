@@ -38,10 +38,13 @@ player gets an emoji splash + banner on the Presentation Screen, 3s after
 the answer appears · scoreboard reveal is host-controlled (a "Show
 Scoreboard" button), not an automatic timer.
 
-**Resilience**: host reload mid-question/mid-reveal restores the correct
-screen (including recomputed remaining time) instead of resetting to lobby.
-*(Known gap: the player/presentation side of this doesn't have the
-equivalent fix yet — see below.)*
+**Resilience**: host, player, and presentation reload mid-question/
+mid-reveal all restore the correct screen (including recomputed remaining
+time and, for a player, their own already-submitted answer) instead of
+resetting to lobby — one shared `roomLiveState()` helper on the server
+(`index.js`) feeds all three roles' resume/join acks. Presentation Screen
+also now re-joins on every socket reconnect, not just the initial page
+load.
 
 **Infra & deployment**: CORS allowlist (`ALLOWED_ORIGINS`) · login rate
 limiting · single-origin deploy (server serves the built client) ·
@@ -62,11 +65,6 @@ something new, flag it explicitly in this file until it's confirmed.
 
 ## Known gaps (not yet fixed)
 
-- **Reload mid-question for players/presentation** (host-side is fixed,
-  see "Resilience" above): a player or the presentation screen reloading
-  during a live question lands back on "lobby" until the next phase-change
-  event, instead of showing the current question. Self-heals on the host's
-  next action. Ranked #4 in "Next up" below.
 - **Game state is in-memory only** — a server crash/redeploy loses any
   in-progress game (not the Quiz Bank, that's on disk). Ranked #7 in
   "Next up" below.
@@ -101,9 +99,8 @@ surface) and are the current priority.
    rendered on the host side yet (`HostRoom.jsx`'s reveal branch). No
    server changes needed. Per-player "who answered what" breakdown also
    goes here.
-4. **Reload mid-question fix (player/presentation)** *(High value, M
-   effort)* — known gap above; can mirror the pattern already proven for
-   the host side.
+4. ~~Reload mid-question fix (player/presentation)~~ — shipped, see
+   "Resilience" above.
 5. **Audio — presentation screen only** *(High value, M effort)* — a
    question-timer tick/countdown sound and a sting for the
    fastest-answerer reveal, played from Presentation Screen only
