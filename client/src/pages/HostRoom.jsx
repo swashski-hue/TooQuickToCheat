@@ -254,7 +254,13 @@ export default function HostRoom() {
 
           {phase === "question" && board && (
             <>
-              <div className="timer-badge">{secondsLeft}s</div>
+              <div className="timer-badge">
+                <div
+                  className="timer-badge-fill"
+                  style={{ width: `${(100 * secondsLeft) / board.timeLimitSeconds}%` }}
+                />
+                <span className="timer-badge-label">{secondsLeft}s</span>
+              </div>
               {pictureUrl && (
                 <div className="picture-display">
                   <img src={`${SERVER_URL}${pictureUrl}`} alt="" />

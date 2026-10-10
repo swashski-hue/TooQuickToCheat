@@ -309,7 +309,13 @@ export default function PresentationScreen() {
             <span className="present-progress">
               Q{board.index + 1} / {board.total}
             </span>
-            <span className="present-timer">{secondsLeft}s</span>
+            <div className="present-timer">
+              <div
+                className="present-timer-fill"
+                style={{ width: `${(100 * secondsLeft) / board.timeLimitSeconds}%` }}
+              />
+              <span className="present-timer-label">{secondsLeft}s</span>
+            </div>
           </div>
           {board.roundType !== "standard" && (
             <p className="present-label">{ROUND_TYPE_LABELS[board.roundType]} Round</p>
