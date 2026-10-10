@@ -5,6 +5,7 @@ import { SERVER_URL } from "../lib/api.js";
 import { ROUND_TYPE_LABELS, ROUND_TYPE_HINTS, FAST_TRACK_LABEL } from "../lib/roundTypes.js";
 import { getFastestCorrect } from "../lib/fastestAnswers.js";
 import { formatGivenAnswer } from "../lib/formatAnswer.js";
+import { unlockAudio, playTick, playFastestSting } from "../lib/hostAudio.js";
 import AddRoundModal from "../components/AddRoundModal.jsx";
 import RunningOrderPanel from "../components/RunningOrderPanel.jsx";
 
@@ -34,7 +35,13 @@ export default function HostRoom() {
   const [hasMore, setHasMore] = useState(true);
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(false);
   const tickRef = useRef(null);
+
+  function enableSound() {
+    unlockAudio();
+    setSoundEnabled(true);
+  }
 
   useEffect(() => {
     // Re-identify as this room's host on every (re)connect — covers both a
@@ -134,10 +141,27 @@ export default function HostRoom() {
       return;
     }
     tickRef.current = setInterval(() => {
-      setSecondsLeft((s) => Math.max(0, s - 1));
+      setSecondsLeft((s) => {
+        const next = Math.max(0, s - 1);
+        if (soundEnabled && next > 0 && next <= 5) playTick();
+        return next;
+      });
     }, 1000);
     return () => clearInterval(tickRef.current);
-  }, [phase]);
+  }, [phase, soundEnabled]);
+
+  // Timed to match the Presentation Screen's fastest-answerer splash (3s
+  // after reveal, so it doesn't cover the answer before everyone's seen it) —
+  // sound plays from here since the host screen is what's actually in focus
+  // on the host's machine, not the (often backgrounded/projected) Presentation Screen.
+  useEffect(() => {
+    if (phase !== "reveal" || !reveal) return;
+    const t = setTimeout(() => {
+      const top = getFastestCorrect(reveal.results)[0];
+      if (soundEnabled && top) playFastestSting(top.emoji);
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [phase, reveal, soundEnabled]);
 
   function startQuestion() {
     socket.emit("host:startQuestion", { code }, (res) => {
@@ -214,6 +238,11 @@ export default function HostRoom() {
           </button>
         </div>
         <div className="host-topbar-actions">
+          {!soundEnabled && (
+            <button className="btn btn-small" onClick={enableSound}>
+              🔊 Enable sound
+            </button>
+          )}
           <button className="btn btn-small" onClick={() => window.open(`/present/${code}`, "_blank", "noopener")}>
             📺 Presentation Screen
           </button>

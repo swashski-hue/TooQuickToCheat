@@ -1,7 +1,10 @@
-// Presentation-screen-only sound effects: a question-timer tick and a sting
-// for the fastest-answerer reveal. Browsers block audio until a user
-// gesture resumes the AudioContext, so unlockAudio() must run inside a real
-// click handler before any play* call below will actually make sound.
+// Host-screen sound effects: a question-timer tick and a sting for the
+// fastest-answerer reveal. Lives on the host screen (not the Presentation
+// Screen) because that's the window actually in focus on the host's
+// machine — audio from a backgrounded/projected tab is unreliable in some
+// browsers. Browsers block audio until a user gesture resumes the
+// AudioContext, so unlockAudio() must run inside a real click handler
+// before any play* call below will actually make sound.
 let ctx = null;
 const bufferCache = new Map();
 

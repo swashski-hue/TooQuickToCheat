@@ -1755,28 +1755,6 @@ body:has(.presentation-screen) {
   font-weight: 600;
 }
 
-.present-sound-unlock {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 50;
-  background: var(--pa-amber);
-  color: var(--pa-navy);
-  border: 3px solid var(--pa-navy);
-  border-radius: 20px;
-  padding: 10px 20px;
-  font-family: var(--font-game);
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 3px 3px 0 var(--pa-navy);
-}
-
-.present-sound-unlock:active {
-  transform: translate(2px, 2px);
-  box-shadow: 1px 1px 0 var(--pa-navy);
-}
-
 .present-timer {
   position: relative;
   flex: 1;

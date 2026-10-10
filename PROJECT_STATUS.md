@@ -112,15 +112,20 @@ Presentation Screen version was widened to span most of the row (almost up
 to the question-number box) and drains left-to-right per the user's
 preference.
 
-**Presentation Screen audio — in progress** (2026-10-10): trigger wiring is
-done and live — `client/src/lib/presentationAudio.js`, a user-gesture
-"🔊 Enable sound" button, a real tick sample for the final 5 seconds of the
-countdown, and a per-player-emoji sting on the fastest-answerer reveal.
-8 of the 16 emojis now play a real (or deliberate stand-in) sample sourced
-from Mixkit: lion, tiger, dog, cat, monkey, owl, unicorn (stand-in: fairy
-sparkle), octopus (stand-in: water bubble). The remaining 8 still fall back
-to a synthesized placeholder tone — see "Next up" below to finish sourcing
-those.
+**Game sound effects — in progress** (2026-10-10): trigger wiring is done
+and live — `client/src/lib/hostAudio.js`, a user-gesture "🔊 Enable sound"
+button, a real tick sample for the final 5 seconds of the countdown, and a
+per-player-emoji sting on the fastest-answerer reveal. Lives on the host
+screen (`HostRoom.jsx`), not the Presentation Screen — moved there
+2026-10-10 since the host screen is what's actually in focus on the host's
+machine, so that's where the audio is reliably heard; the sting is still
+timed to the Presentation Screen's 3s-delayed splash so the sound and the
+big-screen visual stay in sync even though they're triggered from different
+screens. 8 of the 16 emojis now play a real (or deliberate stand-in) sample
+sourced from Mixkit: lion, tiger, dog, cat, monkey, owl, unicorn (stand-in:
+fairy sparkle), octopus (stand-in: water bubble). The remaining 8 still fall
+back to a synthesized placeholder tone — see "Next up" below to finish
+sourcing those.
 
 **Game-state persistence** (2026-10-10): in-progress rooms (round, queue,
 player scores/answers, current question + remaining time, cached
@@ -176,7 +181,7 @@ realized 2026-10-10, removed from this list without separate work.)
 
 1. **Finish sourcing fastest-answer emoji sounds** *(low effort, just
    asset-hunting)* — 8 of 16 emojis in
-   `client/src/lib/presentationAudio.js`'s `EMOJI_SOUND_FILES` still play a
+   `client/src/lib/hostAudio.js`'s `EMOJI_SOUND_FILES` still play a
    synthesized placeholder tone instead of a real sample:
    - 🦊 fox, 🐸 frog, 🐰 rabbit, 🐹 hamster — candidates found on
      freesound.org (CC0), but all need trimming to a short clip before use
