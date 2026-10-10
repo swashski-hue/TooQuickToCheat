@@ -5,6 +5,7 @@ import { SERVER_URL } from "../lib/api.js";
 import { ROUND_TYPE_LABELS, FAST_TRACK_LABEL } from "../lib/roundTypes.js";
 import { rankColor } from "../lib/rankColor.js";
 import { getFastestCorrect } from "../lib/fastestAnswers.js";
+import { unlockAudio, playTick, playFastestSting } from "../lib/presentationAudio.js";
 
 // Shown above the question on both the intro screen and the live question
 // board, so the room knows what kind of question is coming and how to
@@ -32,7 +33,13 @@ export default function PresentationScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [showFastestSplash, setShowFastestSplash] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(false);
   const tickRef = useRef(null);
+
+  function enableSound() {
+    unlockAudio();
+    setSoundEnabled(true);
+  }
 
   useEffect(() => {
     // Re-join as this room's spectator on every (re)connect — covers both a
@@ -131,17 +138,27 @@ export default function PresentationScreen() {
       clearInterval(tickRef.current);
       return;
     }
-    tickRef.current = setInterval(() => setSecondsLeft((s) => Math.max(0, s - 1)), 1000);
+    tickRef.current = setInterval(() => {
+      setSecondsLeft((s) => {
+        const next = Math.max(0, s - 1);
+        if (soundEnabled && next > 0 && next <= 5) playTick();
+        return next;
+      });
+    }, 1000);
     return () => clearInterval(tickRef.current);
-  }, [phase]);
+  }, [phase, soundEnabled]);
 
   // The correct answer shows immediately on reveal; the fastest-answerer splash
   // waits 3s so it doesn't cover the answer before everyone's had a look at it.
   useEffect(() => {
     if (phase !== "reveal") return;
-    const t = setTimeout(() => setShowFastestSplash(true), 3000);
+    const t = setTimeout(() => {
+      setShowFastestSplash(true);
+      const top = reveal && getFastestCorrect(reveal.results)[0];
+      if (soundEnabled && top) playFastestSting(top.emoji);
+    }, 3000);
     return () => clearTimeout(t);
-  }, [phase, reveal]);
+  }, [phase, reveal, soundEnabled]);
 
   if (joinError) {
     return (
@@ -174,6 +191,11 @@ export default function PresentationScreen() {
 
   return (
     <div className="presentation-screen">
+      {!soundEnabled && (
+        <button className="present-sound-unlock" onClick={enableSound}>
+          🔊 Enable sound
+        </button>
+      )}
       {phase === "lobby" && (
         <div className="present-center">
           <h1 className="present-brand">⚡ Too Quick To Cheat</h1>
