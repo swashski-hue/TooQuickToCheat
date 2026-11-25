@@ -75,7 +75,9 @@ app.set("trust proxy", "loopback");
 app.use(cors({ origin: corsOrigin, credentials: true }));
 app.use(express.json({ limit: "12mb" }));
 app.use(cookieParser());
-app.use("/uploads", express.static(UPLOADS_DIR));
+// Filenames are random nanoid per upload and never overwritten, so they can be
+// cached aggressively — stops 20 phones re-downloading the same picture.
+app.use("/uploads", express.static(UPLOADS_DIR, { maxAge: "7d", immutable: true }));
 
 function requireAuth(req, res, next) {
   const user = verifySession(req.cookies[COOKIE_NAME]);

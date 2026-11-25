@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { getRound, createRound, updateRound, uploadImage, fileToDataUrl, SERVER_URL } from "../lib/api.js";
+import { getRound, createRound, updateRound, uploadImage, fileToResizedDataUrl, SERVER_URL } from "../lib/api.js";
 import { computeAnswerLetter } from "../lib/answerLetter.js";
 import { QUESTION_TYPES, QUESTION_TYPE_LABELS } from "../lib/questionTypes.js";
 import { formatDate } from "../lib/formatDate.js";
@@ -134,7 +134,7 @@ export default function RoundEditor() {
     setError("");
     setUploadingIdx(idx);
     try {
-      const dataUrl = await fileToDataUrl(file);
+      const dataUrl = await fileToResizedDataUrl(file);
       const { url } = await uploadImage(dataUrl);
       updateQuestion(idx, { pictureUrl: url });
     } catch (e) {
