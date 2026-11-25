@@ -4,7 +4,7 @@ import { socket } from "../lib/socket.js";
 import { SERVER_URL } from "../lib/api.js";
 import { LETTER_TILES, tileLetters } from "../lib/answerLetter.js";
 import { ROUND_TYPE_LABELS } from "../lib/roundTypes.js";
-import { loadPlayerSession, loadPlayerEmoji, clearPlayerSession } from "../lib/playerSession.js";
+import { loadPlayerSession, loadPlayerEmoji, clearPlayerSession, getDeviceToken } from "../lib/playerSession.js";
 import { rankColor } from "../lib/rankColor.js";
 
 const KEYPAD_ROWS = [
@@ -52,9 +52,9 @@ export default function PlayerGame() {
     // Also covers the very first connect right after "player:join".
     function resume() {
       if (!myName) return navigate("/join");
-      socket.emit("player:resume", { code, name: myName }, (res) => {
+      socket.emit("player:resume", { code, name: myName, token: getDeviceToken() }, (res) => {
         if (!res?.ok) {
-          clearPlayerSession();
+          clearPlayerSession(code);
           alert(res?.error || "Could not rejoin — please join again.");
           return navigate("/join");
         }
@@ -130,17 +130,17 @@ export default function PlayerGame() {
     socket.on("game:ended", ({ standings }) => {
       setStandings(standings);
       setPhase("ended");
-      clearPlayerSession();
+      clearPlayerSession(code);
     });
 
     socket.on("game:hostLeft", () => {
-      clearPlayerSession();
+      clearPlayerSession(code);
       alert("The host ended the session.");
       navigate("/join");
     });
 
     socket.on("game:removed", () => {
-      clearPlayerSession();
+      clearPlayerSession(code);
       alert("The host removed you from this game.");
       navigate("/join");
     });

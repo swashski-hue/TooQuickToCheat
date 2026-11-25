@@ -26,7 +26,7 @@ fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 const PORT = process.env.PORT || 4000;
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const HOST_RECONNECT_GRACE_MS = 45_000;
-const PLAYER_RECONNECT_GRACE_MS = 60_000;
+const PLAYER_RECONNECT_GRACE_MS = 5 * 60_000; // phones get locked/backgrounded mid-quiz for minutes, not seconds
 const SNAPSHOT_INTERVAL_MS = 5_000;
 const INVITE_CODE = process.env.INVITE_CODE || "quiznight";
 if (!process.env.INVITE_CODE) {
@@ -297,6 +297,19 @@ function roomLiveState(room) {
   return null;
 }
 
+// Which existing seat a join/resume should take over, if any. Returns
+// { socketId, player } to reclaim, { error } to refuse, or null for a new seat.
+// Device token first (only that device can reclaim a live seat); then a name
+// match, which is only honoured when that player is offline.
+function findClaim(room, name, token, socketId) {
+  const byToken = game.findPlayerByToken(room, token);
+  if (byToken) return byToken;
+  const byName = game.findPlayerByName(room, name);
+  if (!byName) return null;
+  if (byName.player.disconnected || byName.socketId === socketId) return byName;
+  return { error: "That name is already in use by a connected player in this room" };
+}
+
 io.on("connection", (socket) => {
   // ----- Host events -----
   socket.on("host:createRoom", (_payload, ack) => {
@@ -496,78 +509,96 @@ io.on("connection", (socket) => {
   });
 
   // ----- Player events -----
+  // Points this socket at a player seat in a room (shared by join + resume).
+  function bindPlayerSocket(room) {
+    socket.join(room.code);
+    socket.data.role = "player";
+    socket.data.roomCode = room.code;
+  }
+
+  // Moves a seat onto this socket. If the seat was still held by an older
+  // socket (same device reconnecting before the server noticed the drop),
+  // that old socket is detached so its late "disconnect" can't touch the seat.
+  function reclaimSeat(room, claim) {
+    const oldSocketId = claim.socketId;
+    const player = game.resumePlayer(room, oldSocketId, socket.id);
+    const oldSocket = io.sockets.sockets.get(oldSocketId);
+    if (oldSocket && oldSocket.id !== socket.id) {
+      oldSocket.leave(room.code);
+      oldSocket.data.role = null;
+      oldSocket.data.roomCode = null;
+    }
+    bindPlayerSocket(room);
+    return player;
+  }
+
+  function rejoinPayload(room, player) {
+    return {
+      ok: true,
+      name: player.name,
+      emoji: player.emoji,
+      roundName: room.round?.name ?? null,
+      score: player.score,
+      live: roomLiveState(room),
+      myAnswer: player.lastAnswer,
+    };
+  }
+
   // Validates a room code before the naming/emoji screen, and reports which
   // emoji are already taken so the picker can grey them out up front. Joining
-  // is allowed at any point in a game (not just the lobby) — both for genuine
-  // latecomers, and so a player who got fully dropped (past the reconnect
-  // grace period, removed from the room) has a way back in via this same
-  // flow rather than being stuck once their "player:resume" session expires.
+  // is allowed at any point in a game (not just the lobby).
   socket.on("player:checkRoom", ({ code }, ack) => {
     const room = game.getRoom(code);
     if (!room) return ack?.({ ok: false, error: "Room not found" });
     ack?.({ ok: true, takenEmojis: Array.from(game.takenEmojis(room)) });
   });
 
-  socket.on("player:join", ({ code, name, emoji }, ack) => {
+  // Joining a room is the same as reclaiming a seat when the device or name
+  // already has one: the device token (stored in the browser) wins, then a
+  // name match against an offline player. A live player with a different
+  // device token can't be taken over by name.
+  socket.on("player:join", ({ code, name, emoji, token }, ack) => {
     const room = game.getRoom(code);
     if (!room) return ack?.({ ok: false, error: "Room not found" });
     if (!name || !name.trim()) return ack?.({ ok: false, error: "Name required" });
 
-    const result = game.addPlayer(room, socket.id, name.trim(), emoji);
-    if (!result.ok) return ack?.(result);
-    socket.join(room.code);
-    socket.data.role = "player";
-    socket.data.roomCode = room.code;
+    const claim = findClaim(room, name, token, socket.id);
+    if (claim?.error) return ack?.({ ok: false, error: claim.error });
+    if (claim) {
+      const player = reclaimSeat(room, claim);
+      ack?.(rejoinPayload(room, player));
+      return emitPlayers(room);
+    }
 
-    // A latecomer lands on whatever screen is actually live (question, reveal,
-    // etc.) via the same payload a reconnect uses — PlayerGame.jsx's
-    // "player:resume" call right after this join picks it up from there.
-    ack?.({ ok: true, roundName: room.round?.name ?? null, live: roomLiveState(room) });
+    const result = game.addPlayer(room, socket.id, name.trim(), emoji, token);
+    if (!result.ok) return ack?.(result);
+    bindPlayerSocket(room);
+
+    const player = room.players.get(socket.id);
+    ack?.(rejoinPayload(room, player));
     emitPlayers(room);
   });
 
-  // Re-identifies a reconnecting socket as an existing player by name, so a
-  // screen lock, app switch, or brief Wi-Fi drop doesn't wipe their score.
-  // Called on every socket "connect" from the player screen, including the
-  // very first one right after "player:join" — so it must be a no-op then.
-  socket.on("player:resume", ({ code, name }, ack) => {
+  // Re-identifies a reconnecting socket as an existing player. Called on every
+  // socket "connect" from the player screen, including the first one right
+  // after "player:join" (where it's already this socket and a no-op).
+  socket.on("player:resume", ({ code, name, token }, ack) => {
     const room = game.getRoom(code);
     if (!room) return ack?.({ ok: false, error: "Room not found" });
     if (!name || !name.trim()) return ack?.({ ok: false, error: "Name required" });
 
-    const found = game.findPlayerByName(room, name);
-    if (!found) return ack?.({ ok: false, error: "Session expired — please rejoin" });
+    const claim = findClaim(room, name, token, socket.id);
+    if (!claim) return ack?.({ ok: false, error: "Session expired — please rejoin" });
+    if (claim.error) return ack?.({ ok: false, error: claim.error });
 
-    if (found.socketId === socket.id) {
+    if (claim.socketId === socket.id) {
       // Already this exact connection (the resume call right after a fresh join).
-      socket.join(room.code);
-      socket.data.role = "player";
-      socket.data.roomCode = room.code;
-      return ack?.({
-        ok: true,
-        roundName: room.round?.name ?? null,
-        score: found.player.score,
-        live: roomLiveState(room),
-        myAnswer: found.player.lastAnswer,
-      });
+      bindPlayerSocket(room);
+      return ack?.(rejoinPayload(room, claim.player));
     }
 
-    if (!found.player.disconnected) {
-      return ack?.({ ok: false, error: "That name is already connected elsewhere" });
-    }
-
-    const player = game.resumePlayer(room, found.socketId, socket.id);
-    socket.join(room.code);
-    socket.data.role = "player";
-    socket.data.roomCode = room.code;
-
-    ack?.({
-      ok: true,
-      roundName: room.round?.name ?? null,
-      score: player.score,
-      live: roomLiveState(room),
-      myAnswer: player.lastAnswer,
-    });
+    const player = reclaimSeat(room, claim);
+    ack?.(rejoinPayload(room, player));
     emitPlayers(room);
   });
 

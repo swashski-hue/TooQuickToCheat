@@ -171,6 +171,7 @@ export function serializeRoom(room) {
       id: p.id,
       name: p.name,
       emoji: p.emoji,
+      token: p.token ?? null,
       score: p.score,
       lastAnswer: p.lastAnswer,
     })),
@@ -267,7 +268,7 @@ export function takenEmojis(room) {
 }
 
 /** Adds a player with a unique emoji. Fails if the requested emoji is already taken in this room. */
-export function addPlayer(room, socketId, name, emoji) {
+export function addPlayer(room, socketId, name, emoji, token = null) {
   const taken = takenEmojis(room);
   const chosen = PLAYER_EMOJIS.includes(emoji) ? emoji : PLAYER_EMOJIS.find((e) => !taken.has(e));
   if (!chosen || taken.has(chosen)) {
@@ -276,6 +277,7 @@ export function addPlayer(room, socketId, name, emoji) {
 
   room.players.set(socketId, {
     id: socketId,
+    token: token || null, // per-device id from the client; lets the same device reclaim its seat
     name: name.slice(0, 24),
     emoji: chosen,
     score: 0,
@@ -284,6 +286,15 @@ export function addPlayer(room, socketId, name, emoji) {
     disconnectTimer: null,
   });
   return { ok: true };
+}
+
+/** Finds a player by the per-device token they joined with (null if no token). */
+export function findPlayerByToken(room, token) {
+  if (!token) return null;
+  for (const [socketId, player] of room.players) {
+    if (player.token === token) return { socketId, player };
+  }
+  return null;
 }
 
 export function removePlayer(room, socketId) {
@@ -305,7 +316,11 @@ export function markPlayerDisconnected(room, socketId) {
   return player;
 }
 
-/** Moves a disconnected player's record onto their new socket id, keeping their score. */
+/**
+ * Moves a player's record onto their new socket id, keeping score, answers and
+ * emoji. Works for a disconnected seat and for a live seat whose old socket
+ * hasn't timed out yet (same device reconnecting before the server noticed).
+ */
 export function resumePlayer(room, oldSocketId, newSocketId) {
   const player = room.players.get(oldSocketId);
   if (!player) return null;

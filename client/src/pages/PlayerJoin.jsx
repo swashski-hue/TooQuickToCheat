@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { socket } from "../lib/socket.js";
-import { savePlayerSession } from "../lib/playerSession.js";
+import { savePlayerSession, loadPlayerSession, loadPlayerEmoji, getDeviceToken } from "../lib/playerSession.js";
 
 // Mirrors server/gameManager.js's PLAYER_EMOJIS — kept as a plain constant
 // (not fetched) so the picker is always there immediately, with no dependency
@@ -44,6 +44,12 @@ export default function PlayerJoin() {
       const taken = res.takenEmojis || [];
       setTakenEmojis(taken);
       setEmoji((current) => (taken.includes(current) ? EMOJIS.find((e) => !taken.includes(e)) || current : current));
+      // Returning to a room this browser has already been in: pre-fill the old seat.
+      // The server matches this device and puts the player back in their seat either way.
+      const savedName = loadPlayerSession(roomCode);
+      const savedEmoji = loadPlayerEmoji(roomCode);
+      if (savedName) setName((current) => current || savedName);
+      if (savedEmoji) setEmoji(savedEmoji);
       setStep("details");
     });
   }
@@ -57,11 +63,13 @@ export default function PlayerJoin() {
     }
     setJoining(true);
     const roomCode = code.trim().toUpperCase();
-    socket.emit("player:join", { code: roomCode, name, emoji }, (res) => {
+    socket.emit("player:join", { code: roomCode, name, emoji, token: getDeviceToken() }, (res) => {
       setJoining(false);
       if (res.ok) {
-        savePlayerSession(roomCode, name, emoji);
-        navigate(`/play/${roomCode}`, { state: { name, emoji, roundName: res.roundName } });
+        // The server may have put this device back in an existing seat, so use
+        // the name and emoji it returns rather than whatever was typed.
+        savePlayerSession(roomCode, res.name, res.emoji);
+        navigate(`/play/${roomCode}`, { state: { name: res.name, emoji: res.emoji, roundName: res.roundName } });
       } else {
         setError(res.error);
         // Someone may have just taken this emoji — refresh the taken list.

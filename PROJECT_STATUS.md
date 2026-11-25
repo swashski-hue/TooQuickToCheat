@@ -165,9 +165,32 @@ player list, confirm-gated): clears the player's pending disconnect timer if
 any, removes them from the room, and tells their socket (`game:removed`) to
 clear its session and bounce to `/join`.
 
+**Device-linked player reconnect** (2026-11-25, *logic verified with a
+throwaway socket test against a real server; not yet confirmed on a live
+phone*): a player's seat now follows their device, not their tab. A per-browser
+token (`tqtc_device_id` in `localStorage`, `getDeviceToken()` in
+`playerSession.js`) is sent with `player:join` and `player:resume` and stored
+on the player record (`gameManager.js` `addPlayer`/`findPlayerByToken`, kept in
+the disk snapshot). `index.js`'s `findClaim` decides who gets which seat: token
+match first (can reclaim even a live seat, e.g. the phone dropped and came
+back before the server noticed), then name match only if that player is
+offline. A live seat with a different device token is refused "name already in
+use". Reclaiming moves the seat onto the new socket and detaches the old one
+(`reclaimSeat`), so the old socket's late disconnect can't mark it offline.
+Rejoining via the join form pre-fills the last name/emoji for that room, and
+the server returns the seat's real name/emoji. `PLAYER_RECONNECT_GRACE_MS` went
+from 60s to 5 min, since phones are locked for minutes at a time. Score,
+answers and emoji all carry over.
+
 ## Known gaps (not yet fixed)
 
-None currently tracked.
+- An offline player's name can be reclaimed by anyone who types it (no
+  secret beyond the name). Accepted to keep "same name, pick up" simple; a
+  stronger check would mean a per-room secret or a PIN.
+- A player removed past the reconnect grace period loses their score; the
+  new seat starts at 0.
+- One device gets one seat per room. Typing a different name on the same
+  device reclaims the existing seat rather than making a second player.
 
 ## Next up
 
