@@ -2341,6 +2341,27 @@ body:has(.presentation-screen) {
   color: var(--pa-navy);
 }
 
+/* Scoreboard scroll window: fills the space under the heading. The list is
+   centred (auto margins) when it fits and is scrolled programmatically by
+   PresentationScreen when it doesn't. overflow is hidden, not auto, so the
+   presentation screen can't be scrolled by hand. */
+.present-board-scroll {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 4px 8px 14px;
+  box-sizing: border-box;
+}
+
+.present-board-scroll .present-leaderboard {
+  flex-shrink: 0;
+  align-self: center;
+  margin: auto 0;
+}
+
 @media (max-width: 900px) {
   .present-code {
     font-size: 4rem;

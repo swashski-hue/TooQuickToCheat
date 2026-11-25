@@ -33,6 +33,7 @@ export default function PresentationScreen() {
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [showFastestSplash, setShowFastestSplash] = useState(false);
   const tickRef = useRef(null);
+  const boardRef = useRef(null);
 
   useEffect(() => {
     // Re-join as this room's spectator on every (re)connect — covers both a
@@ -136,6 +137,51 @@ export default function PresentationScreen() {
     }, 1000);
     return () => clearInterval(tickRef.current);
   }, [phase]);
+
+  // Scoreboard that doesn't fit the screen: start at the bottom (so the
+  // lowest teams are seen first), glide up to the top, hold, then jump back
+  // to the bottom and repeat. Scrolling is programmatic only (overflow is
+  // hidden), so nothing can be scrolled by hand on the presentation screen.
+  useEffect(() => {
+    if (phase !== "leaderboard" && phase !== "ended") return;
+    const el = boardRef.current;
+    if (!el) return;
+
+    const HOLD_MS = 3000;
+    const PX_PER_SEC = 50;
+    let cancelled = false;
+    let raf = null;
+    let timer = null;
+
+    function glideTo(target, next) {
+      const start = el.scrollTop;
+      const distance = Math.abs(start - target);
+      const duration = (distance / PX_PER_SEC) * 1000;
+      const t0 = performance.now();
+      function frame(now) {
+        if (cancelled) return;
+        const p = duration === 0 ? 1 : Math.min(1, (now - t0) / duration);
+        el.scrollTop = start + (target - start) * p;
+        if (p < 1) raf = requestAnimationFrame(frame);
+        else timer = setTimeout(next, HOLD_MS);
+      }
+      raf = requestAnimationFrame(frame);
+    }
+
+    function cycle() {
+      const max = el.scrollHeight - el.clientHeight;
+      if (max <= 4) return; // whole board fits, nothing to scroll
+      el.scrollTop = max;
+      timer = setTimeout(() => glideTo(0, cycle), HOLD_MS);
+    }
+
+    cycle();
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+    };
+  }, [phase, standings]);
 
   // The correct answer shows immediately on reveal; the fastest-answerer splash
   // waits 3s so it doesn't cover the answer before everyone's had a look at it.
@@ -468,17 +514,19 @@ export default function PresentationScreen() {
       {(phase === "leaderboard" || phase === "ended") && (
         <div className="present-center">
           <h1 className="present-question">{phase === "ended" ? "🏆 Final Results" : "Leaderboard"}</h1>
-          <ol className="present-leaderboard">
-            {standings.map((p, i) => (
-              <li
-                key={p.id}
-                className={i < 3 ? `podium podium-${i + 1}` : ""}
-                style={{ background: rankColor(i, standings.length) }}
-              >
-                <span className="rank">#{i + 1}</span> {p.emoji} {p.name} <span className="score">{p.score}</span>
-              </li>
-            ))}
-          </ol>
+          <div className="present-board-scroll" ref={boardRef}>
+            <ol className="present-leaderboard">
+              {standings.map((p, i) => (
+                <li
+                  key={p.id}
+                  className={i < 3 ? `podium podium-${i + 1}` : ""}
+                  style={{ background: rankColor(i, standings.length) }}
+                >
+                  <span className="rank">#{i + 1}</span> {p.emoji} {p.name} <span className="score">{p.score}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
           {phase === "leaderboard" && (
             <p className="present-label">
               {hasMore ? "Next question coming up..." : "Waiting for the host to pick the next round..."}
